@@ -1,8 +1,10 @@
-#LyGo
+LyGo
+-
 
 LyGo is a simple application library written in Go.
 
-#Modules
+Modules
+-
 
 LyGo uses [Modules](https://blog.golang.org/using-go-modules) for dependencies.
 
