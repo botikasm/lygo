@@ -1,0 +1,58 @@
+package lygo_strings
+
+import "testing"
+
+func TestFormat(t *testing.T) {
+	type args struct {
+		s      string
+		params []interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"simple", args{"text %s %s", []interface{}{"1", 2}}, "text 1 2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Format(tt.args.s, tt.args.params...); got != tt.want {
+				t.Errorf("Format() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTrim(t *testing.T) {
+	type args struct {
+		slice   []string
+		trimVal string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+		})
+	}
+}
+
+func TestTrimSpaces(t *testing.T) {
+	type args struct {
+		slice []string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+		})
+	}
+}
+

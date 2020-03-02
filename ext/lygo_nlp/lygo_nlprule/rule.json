@@ -1,0 +1,23 @@
+[
+  {
+    "uid": "mod_70",
+    "description": "Intent or document identifier fo Cod. 70",
+    "entities": [
+      {
+        "uid": "doc_type",
+        "description": "[FIRST IS AN INTENT TOO] document type. Lookup for 'Cod. 70'",
+        "intent": "mod_70",
+        "score": 100,
+        "values": [
+          "$regexps.MatchFirst('?od??70')"
+        ]
+      },
+      {
+        "uid": "price",
+        "description": "price to pay",
+        "score": 1,
+        "values": ["(function(){var START_PATTERN='?ese';var END_PATTERN='?if? ';var pair_start=$arrays.GetFirst($regexps.IndexLenPair(START_PATTERN));if(!!pair_start&&pair_start.length>0){startIndex=pair_start[0]+pair_start[1]\nendIndex=$arrays.GetFirst($regexps.IndexStartAt(startIndex,END_PATTERN))\nif(!!endIndex){var sub=$strings.Sub(startIndex,endIndex)\nif(sub.indexOf(')')>-1){sub=sub.substring(sub.indexOf(')'),sub.length-1)}\nvar values=$regexps.MatchNumbers(sub);return $arrays.GetLast(values)}}\nreturn''})()"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "host": "gianangelogeminiani.me",
+  "port": 443,
+  "path": "download/test_license.json",
+  "use_ssl": true
+}
