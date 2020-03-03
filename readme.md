@@ -1,7 +1,9 @@
-LyGo 0.9.4
+LyGo 0.9.5
 -
 
 LyGo is a simple application library written in Go.
+
+Current version is a development version in alpha 0.x.
 
 Modules
 -
@@ -15,10 +17,15 @@ To add LyGo as a dependency use:
 
 `go get github.com/botikasm/lygo`
 
-`go get github.com/botikasm/lygo@v0.9.4`
+`go get github.com/botikasm/lygo@v0.9.5`
 
 To remove unused dependency use:
+
 `go mod tidy`
+
+To download required dependencies use:
+
+`go build` or `go test`
 
 Version Tagging
 -
