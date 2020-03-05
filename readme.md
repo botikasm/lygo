@@ -1,4 +1,4 @@
-LyGo 0.9.10
+LyGo 0.9.11
 -
 
 LyGo is a simple application library written in Go.
@@ -31,6 +31,6 @@ Version Tagging
 -
 To tag a version use:
 
-`git tag v0.9.10` 
+`git tag v0.9.11` 
 
-`git push origin v0.9.10`
+`git push origin v0.9.11`
