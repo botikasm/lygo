@@ -1,4 +1,4 @@
-LyGo 0.9.8
+LyGo 0.9.9
 -
 
 LyGo is a simple application library written in Go.
