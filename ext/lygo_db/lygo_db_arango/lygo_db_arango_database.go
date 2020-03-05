@@ -121,7 +121,7 @@ func (instance *ArangoDatabase) Query(query string, bindVars map[string]interfac
 				break
 			} else {
 				if nil != callback {
-					exit := callback(meta, &doc, err)
+					exit := callback(meta, doc, err)
 					if exit {
 						break
 					}

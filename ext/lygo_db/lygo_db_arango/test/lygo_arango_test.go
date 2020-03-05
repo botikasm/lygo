@@ -2,18 +2,16 @@ package test
 
 import (
 	"fmt"
+	"github.com/arangodb/go-driver"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_reflect"
 	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/botikasm/lygo/ext/lygo_db/lygo_db_arango"
-	"github.com/arangodb/go-driver"
 	"testing"
 	"time"
 )
-
-
 
 func TestSimple(t *testing.T) {
 
@@ -58,7 +56,7 @@ func TestSimple(t *testing.T) {
 
 	// entity
 	entity := map[string]interface{}{
-		"_key":     "258647",
+		"_key":    "258647",
 		"name":    "Angelo",
 		"surname": "Geminiani",
 	}
@@ -92,7 +90,7 @@ func TestSimple(t *testing.T) {
 
 	// bew entity that test upsert used for insert
 	newEntity := map[string]interface{}{
-		"_key" : lygo_rnd.UuidDefault(""),
+		"_key":    lygo_rnd.UuidDefault(""),
 		"name":    "I'm new",
 		"surname": lygo_strings.Format("%s", time.Now()),
 	}
@@ -103,7 +101,6 @@ func TestSimple(t *testing.T) {
 	}
 	fmt.Println("META", meta)
 	fmt.Println("DOC", doc)
-
 
 	// remove
 	removed, err := conn.DropDatabase("test_sample")
@@ -146,7 +143,7 @@ func TestInsert(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		// entity
 		entity := map[string]interface{}{
-			"_key" : lygo_strings.Format("key_%s", i),
+			"_key":    lygo_strings.Format("key_%s", i),
 			"name":    lygo_strings.Format("Name:%s", i),
 			"surname": lygo_strings.Format("Surname:%s", i),
 			"address": lygo_strings.Format("Address:%s", i),
@@ -161,8 +158,8 @@ func TestInsert(t *testing.T) {
 	}
 
 	updEntity := map[string]interface{}{
-		"_key" : "key_1",
-		"name":    "Gian Angelo",
+		"_key": "key_1",
+		"name": "Gian Angelo",
 	}
 	_, _, err = coll.Update(updEntity)
 	if nil != err {
@@ -191,7 +188,11 @@ func TestInsert(t *testing.T) {
 
 }
 
-func gotDocument(meta driver.DocumentMeta, doc *interface{}, err error) bool{
-	fmt.Println(meta, lygo_conv.ToString(doc), err)
-	return false// continue
+func gotDocument(meta driver.DocumentMeta, doc interface{}, err error) bool {
+	fmt.Print("META: ", meta, " ENTITY: ", lygo_conv.ToString(doc), " ERR: ", err)
+	m := lygo_conv.ToMap(doc)
+	if b, _ := lygo_conv.IsMap(m); b {
+		fmt.Printf(" IS MAP: %v\n", b)
+	}
+	return false // continue
 }

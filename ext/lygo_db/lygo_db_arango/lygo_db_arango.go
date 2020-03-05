@@ -40,7 +40,7 @@ type ArangoConnection struct {
 	client driver.Client
 }
 
-type QueryCallback func(driver.DocumentMeta, *interface{}, error) bool
+type QueryCallback func(driver.DocumentMeta, interface{}, error) bool
 
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
