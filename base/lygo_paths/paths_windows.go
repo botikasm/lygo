@@ -3,7 +3,7 @@
 package lygo_paths
 
 import (
-	"od"
+	"os"
 	"syscall"
 )
 
