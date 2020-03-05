@@ -5,6 +5,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_reflect"
+	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/botikasm/lygo/ext/lygo_db/lygo_db_arango"
 	"github.com/arangodb/go-driver"
@@ -24,12 +25,17 @@ func TestSimple(t *testing.T) {
 	err := conn.Open()
 	if nil != err {
 		// fmt.Println(err)
-		t.Error(err)
+		t.Error(err, ctext)
+		t.Fail()
+		return
 	}
 	// print version
 	fmt.Println("ARANGO SERVER", conn.Server)
 	fmt.Println("ARANGO VERSION", conn.Version)
 	fmt.Println("ARANGO LICENSE", conn.License)
+
+	// remove
+	conn.DropDatabase("test_sample")
 
 	// create a db
 	db, err := conn.Database("test_sample", true)
@@ -84,6 +90,21 @@ func TestSimple(t *testing.T) {
 		return
 	}
 
+	// bew entity that test upsert used for insert
+	newEntity := map[string]interface{}{
+		"_key" : lygo_rnd.UuidDefault(""),
+		"name":    "I'm new",
+		"surname": lygo_strings.Format("%s", time.Now()),
+	}
+	doc, meta, err = coll.Upsert(newEntity)
+	if nil != err {
+		t.Error(err)
+		t.Fail()
+	}
+	fmt.Println("META", meta)
+	fmt.Println("DOC", doc)
+
+
 	// remove
 	removed, err := conn.DropDatabase("test_sample")
 	if nil != err {
@@ -111,7 +132,6 @@ func TestInsert(t *testing.T) {
 
 	// remove
 	conn.DropDatabase("test_sample")
-	
 
 	db, err := conn.Database("test_sample", true)
 	if nil != err {

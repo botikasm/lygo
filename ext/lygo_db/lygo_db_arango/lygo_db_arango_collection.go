@@ -104,8 +104,8 @@ func (instance *ArangoCollection) Upsert(doc map[string]interface{}) (map[string
 				}
 			}
 
-			// read
-			meta, err := instance.collection.ReadDocument(ctx, key, doc)
+			// read using a pointer to original doc
+			meta, err := instance.collection.ReadDocument(ctx, key, &doc)
 			return doc, meta, err
 		}
 		return nil, driver.DocumentMeta{}, nil
