@@ -191,7 +191,7 @@ func TestInsert(t *testing.T) {
 
 }
 
-func gotDocument(meta driver.DocumentMeta, doc interface{}, err error) bool{
+func gotDocument(meta driver.DocumentMeta, doc *interface{}, err error) bool{
 	fmt.Println(meta, lygo_conv.ToString(doc), err)
 	return false// continue
 }
