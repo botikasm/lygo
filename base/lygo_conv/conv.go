@@ -112,6 +112,21 @@ func ToMap(val interface{}) map[string]interface{} {
 	return nil
 }
 
+func ToMapOfString(val interface{}) map[string]string {
+	if b, _ := IsString(val); b {
+		s := ToString(val)
+		var m map[string]string
+		err := json.Unmarshal([]byte(s), &m)
+		if nil == err {
+			return m
+		}
+	}
+	if b, _ := IsMap(val); b {
+		return toMapOfString(val)
+	}
+	return nil
+}
+
 func IsString(val interface{}) (bool, string) {
 	v, vv := val.(string)
 	if vv {
@@ -221,6 +236,24 @@ func toMap(val interface{}) map[string]interface{} {
 	data, err := json.Marshal(val)
 	if nil == err {
 		var m map[string]interface{}
+		err = json.Unmarshal(data, &m)
+		if nil == err {
+			return m
+		}
+	}
+
+	return nil
+}
+
+func toMapOfString(val interface{}) map[string]string {
+	if m, b := val.(map[string]string); b {
+		return m
+	}
+
+	// warning: this change the pointer to original object
+	data, err := json.Marshal(val)
+	if nil == err {
+		var m map[string]string
 		err = json.Unmarshal(data, &m)
 		if nil == err {
 			return m

@@ -188,6 +188,47 @@ func TestInsert(t *testing.T) {
 
 }
 
+func TestImport(t *testing.T) {
+	ctext, _ := lygo_io.ReadTextFromFile("config.json")
+	config := lygo_db_arango.NewArangoConfig()
+	config.Parse(ctext)
+
+	conn := lygo_db_arango.NewArangoConnection(config)
+	err := conn.Open()
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+		t.Fail()
+		return
+	}
+
+	// remove
+	conn.DropDatabase("test_sample")
+
+	db, err := conn.Database("test_sample", true)
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+	}
+
+	err = db.ImportFile("./toImport.json")
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+	}
+
+	err = db.ImportFile("./toImport.csv")
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p r i v a t e
+//----------------------------------------------------------------------------------------------------------------------
+
+
 func gotDocument(meta driver.DocumentMeta, doc interface{}, err error) bool {
 	fmt.Print("META: ", meta, " ENTITY: ", lygo_conv.ToString(doc), " ERR: ", err)
 	m := lygo_conv.ToMap(doc)
