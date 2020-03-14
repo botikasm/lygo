@@ -14,6 +14,7 @@ require (
 	github.com/otiai10/gosseract v2.2.1+incompatible
 	github.com/otiai10/mint v1.3.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.3.0
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v0.0.0-20171207120941-e5f51c11919d
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect

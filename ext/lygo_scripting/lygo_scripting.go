@@ -100,4 +100,8 @@ func (engine *ScripEngine) initTools() {
 	engine.runtime.Set(lygo_scripting_tools.TOOL_REGEXPS, Tregexps)
 	engine.tools = append(engine.tools, Tregexps)
 
+	Tconvert := lygo_scripting_tools.NewToolConvert(params)
+	engine.runtime.Set(lygo_scripting_tools.TOOL_CONVERT, Tconvert)
+	engine.tools = append(engine.tools, Tconvert)
+
 }
