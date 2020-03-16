@@ -1,0 +1,23 @@
+[
+  {
+    "uid": "mod_70",
+    "description": "Intent or document identifier fo Cod. 70",
+    "entities": [
+      {
+        "uid": "doc_type",
+        "description": "[FIRST IS AN INTENT TOO] document type. Lookup for 'Cod. 70'",
+        "intent": "mod_70",
+        "score": 100,
+        "values": [
+          "file://./rules/DOC_TYPE.js"
+        ]
+      },
+      {
+        "uid": "price",
+        "description": "price to pay",
+        "score": 1,
+        "values": ["file://./rules/PRICE.js"]
+      }
+    ]
+  }
+]

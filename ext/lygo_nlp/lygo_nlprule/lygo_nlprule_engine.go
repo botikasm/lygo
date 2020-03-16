@@ -5,6 +5,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_stopwatch"
+	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/botikasm/lygo/ext/lygo_scripting"
 	"github.com/dop251/goja"
 	"path"
@@ -214,8 +215,9 @@ func (engine *NlpRuleEngine) solveRule(runtime *lygo_scripting.ScripEngine, rule
 	response := new(NlpRuleEngineResponseItemEntity)
 	response.Uid = rule.Uid
 
+	scripts := engine.solveScriptPath(rule.Values)
 	// solve values
-	for _, expr := range rule.Values {
+	for _, expr := range scripts {
 		if len(expr) > 0 {
 
 			response.Rules = append(response.Rules, expr) // current expression
@@ -232,6 +234,29 @@ func (engine *NlpRuleEngine) solveRule(runtime *lygo_scripting.ScripEngine, rule
 		}
 	}
 
+	return response
+}
+
+func (document *NlpRuleEngine) solveScriptPath(values []string) []string {
+	response := make([]string, 0)
+	for _, value := range values {
+		if len(value) > 0 {
+			if strings.HasPrefix(value, "file://") {
+				path := strings.Replace(value, "file://", "", 1)
+				path = lygo_paths.WorkspacePath(path)
+				if b, _ := lygo_paths.Exists(path); b {
+					s, err := lygo_io.ReadTextFromFile(path)
+					if len(s) > 0 {
+						response = append(response, s)
+					} else if nil != err {
+						response = append(response, lygo_strings.Format("(function(){return '%s'})()", err.Error()))
+					}
+				}
+			} else {
+				response = append(response, value)
+			}
+		}
+	}
 	return response
 }
 
