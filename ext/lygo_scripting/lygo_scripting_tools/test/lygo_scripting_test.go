@@ -1,7 +1,9 @@
-package lygo_scripting
+package test
 
 import (
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/ext/lygo_scripting"
 	"github.com/botikasm/lygo/ext/lygo_scripting/goja_nodejs/require"
 	"github.com/dop251/goja"
 	"testing"
@@ -9,7 +11,7 @@ import (
 
 func TestSimple(t *testing.T) {
 
-	vm := New()
+	vm := lygo_scripting.New()
 
 	EXPECTED := int64(30)
 
@@ -28,7 +30,7 @@ func TestSimple(t *testing.T) {
 
 func TestExpression(t *testing.T) {
 
-	vm := New()
+	vm := lygo_scripting.New()
 
 	TEXT := "426"
 
@@ -47,7 +49,7 @@ func TestExpression(t *testing.T) {
 
 func TestFunc(t *testing.T) {
 
-	vm := New()
+	vm := lygo_scripting.New()
 
 	want := int64(4)
 
@@ -73,7 +75,7 @@ func TestTool(t *testing.T) {
 
 	TEXT := "this is a text\ncod. 80 is a matching value! Cod. 80"
 
-	vm := New()
+	vm := lygo_scripting.New()
 	vm.SetToolContext("$strings", TEXT)
 	vm.SetToolContext("$regexps", TEXT)
 	// vm.SetToolContext("$strings", 1234)
@@ -200,7 +202,7 @@ func TestToolRegexps(t *testing.T) {
 
 	fmt.Println("TEXT: ", TEXT)
 
-	vm := New()
+	vm := lygo_scripting.New()
 	vm.SetToolContext("$regexps", TEXT)
 
 	var v goja.Value
@@ -253,7 +255,7 @@ func TestToolArrays(t *testing.T) {
 
 	fmt.Println("ARRAY: ", ARRAY)
 
-	vm := New()
+	vm := lygo_scripting.New()
 	vm.SetToolContext("$arrays", ARRAY)
 
 	var v goja.Value
@@ -335,7 +337,7 @@ eh ee 28 eT Meee Bota RNA
 
 	fmt.Println("MIXED: \n", TEXT)
 
-	vm := New()
+	vm := lygo_scripting.New()
 	vm.SetToolContext("$regexps", TEXT)
 	vm.SetToolContext("$strings", TEXT)
 
@@ -419,4 +421,25 @@ func TestNodeJs(t *testing.T) {
 	if nil != err {
 		fmt.Println("ERROR: ", err)
 	}
+}
+
+func TestToolCSV(t *testing.T) {
+
+	vm := lygo_scripting.New()
+
+	TEXT, err := lygo_io.ReadTextFromFile("./script_csv.js")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+		return
+	}
+
+	v, err := vm.RunString(TEXT)
+	if err != nil {
+		panic(err)
+	}
+
+	//value := v.Export().([]map[string]string)
+	fmt.Println(v)
+
 }

@@ -104,4 +104,12 @@ func (engine *ScripEngine) initTools() {
 	engine.runtime.Set(lygo_scripting_tools.TOOL_CONVERT, Tconvert)
 	engine.tools = append(engine.tools, Tconvert)
 
+	Tcsv := lygo_scripting_tools.NewToolCSV(params)
+	engine.runtime.Set(lygo_scripting_tools.TOOL_CSV, Tcsv)
+	engine.tools = append(engine.tools, Tcsv)
+
+	Tpaths := lygo_scripting_tools.NewToolPaths(params)
+	engine.runtime.Set(lygo_scripting_tools.TOOL_PATHS, Tpaths)
+	engine.tools = append(engine.tools, Tcsv)
+
 }
