@@ -10,7 +10,11 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 func Get(object interface{}, name string) interface{} {
-	if b, _ := lygo_conv.IsMap(object); b {
+	if m, b := object.(map[string]interface{}); b {
+		if nil != m {
+			return m[name]
+		}
+	} else if b, _ := lygo_conv.IsMap(object); b {
 		m := lygo_conv.ToMap(object)
 		if nil != m {
 			return m[name]
@@ -23,6 +27,9 @@ func Get(object interface{}, name string) interface{} {
 			if f.IsValid() {
 				return f.Interface()
 			}
+		} else if e.Kind() == reflect.Map {
+			m, _ := e.Interface().(map[string]interface{})
+			return m[name]
 		}
 	}
 	return nil
@@ -30,28 +37,15 @@ func Get(object interface{}, name string) interface{} {
 
 func Set(object interface{}, name string, value interface{}) (interface{}, bool) {
 	if b, _ := lygo_conv.IsMap(object); b {
-		// TEST DIFFERENT MAPS
-		if m, b := object.(map[string]interface{}); b {
-			m[name] = value
-			return m, true
-		}
-		if m, b := object.(map[string]string); b {
-			m[name] = lygo_conv.ToString(value)
-			return m, true
-		}
-		if m, b := object.(map[string]int); b {
-			m[name] = lygo_conv.ToInt(value)
-			return m, true
-		}
-		if m, b := object.(map[string][]interface{}); b {
-			m[name] = lygo_conv.ToArray(value)
-			return m, true
+		m, b := setMapField(object, name, value)
+		if b {
+			return m, b
 		}
 
 		// fallback ( WARN: unmarshal changes the object referenced )
-		m := lygo_conv.ToMap(object)
+		mp := lygo_conv.ToMap(object)
 		if nil != m {
-			m[name] = value
+			mp[name] = value
 			return m, true
 		}
 	} else {
@@ -64,7 +58,29 @@ func Set(object interface{}, name string, value interface{}) (interface{}, bool)
 					return object, true
 				}
 			}
+		} else if e.Kind() == reflect.Map {
+			return setMapField(e.Interface(), name, value)
 		}
+	}
+	return nil, false
+}
+
+func setMapField(object interface{}, name string, value interface{}) (interface{}, bool) {
+	if m, b := object.(map[string]interface{}); b {
+		m[name] = value
+		return m, true
+	}
+	if m, b := object.(map[string]string); b {
+		m[name] = lygo_conv.ToString(value)
+		return m, true
+	}
+	if m, b := object.(map[string]int); b {
+		m[name] = lygo_conv.ToInt(value)
+		return m, true
+	}
+	if m, b := object.(map[string][]interface{}); b {
+		m[name] = lygo_conv.ToArray(value)
+		return m, true
 	}
 	return nil, false
 }

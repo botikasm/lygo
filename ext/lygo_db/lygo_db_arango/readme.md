@@ -1,10 +1,10 @@
 #lygo_db_arango
-##Javascript Scripting Environment
+##ArangoDB wrapper
 
 ###Dependencies
 This module depend on [go-driver](https://github.com/arangodb/go-driver) 
 
 
-`dep ensure -add github.com/arangodb/go-driver`
+`go get github.com/arangodb/go-driver`
 
-`dep ensure -add github.com/arangodb/go-driver/http`
+`go get github.com/arangodb/go-driver/http`

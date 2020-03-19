@@ -97,6 +97,30 @@ func ToIntDef(val interface{}, def int) int {
 	return def
 }
 
+func ToFloat32(val interface{}) float32 {
+	v, vv := val.(float32)
+	if vv {
+		return v
+	}
+	return 0
+}
+
+func ToFloat64(val interface{}) float64 {
+	v, vv := val.(float64)
+	if vv {
+		return v
+	}
+	return 0
+}
+
+func ToBool(val interface{}) bool {
+	v, vv := val.(bool)
+	if vv {
+		return v
+	}
+	return false
+}
+
 func ToMap(val interface{}) map[string]interface{} {
 	if b, _ := IsString(val); b {
 		s := ToString(val)
@@ -125,6 +149,22 @@ func ToMapOfString(val interface{}) map[string]string {
 		return toMapOfString(val)
 	}
 	return nil
+}
+
+func ForceMap(val interface{}) map[string]interface{} {
+	m := ToMap(val)
+	if nil == m {
+		return toMap(val)
+	}
+	return m
+}
+
+func ForceMapOfString(val interface{}) map[string]string {
+	m := ToMapOfString(val)
+	if nil == m {
+		return toMapOfString(val)
+	}
+	return m
 }
 
 func IsString(val interface{}) (bool, string) {
@@ -197,6 +237,30 @@ func IsStruct(val interface{}) (bool, reflect.Value) {
 	default:
 		return false, rt
 	}
+}
+
+func Equals(val1, val2 interface{}) bool {
+	if val1 == val2 {
+		return true
+	}
+
+	if b, v := IsString(val1); b {
+		return v == ToString(val2)
+	}
+	if b, v := IsInt(val1); b {
+		return v == ToInt(val2)
+	}
+	if b, v := IsFloat32(val1); b {
+		return v == ToFloat32(val2)
+	}
+	if b, v := IsFloat64(val1); b {
+		return v == ToFloat64(val2)
+	}
+	if b, v := IsBool(val1); b {
+		return v == ToBool(val2)
+	}
+
+	return false
 }
 
 //----------------------------------------------------------------------------------------------------------------------
