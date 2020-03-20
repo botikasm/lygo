@@ -49,7 +49,7 @@ func (tool *ScriptingToolRegExps) SetContext(context interface{}) {
 func (tool *ScriptingToolRegExps) MatchNumbers(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		text := tool.getArgsString(args)
+		text := lygo_scripting_utils.GetArgsString(tool.context, args)
 		if len(text) > 0 {
 
 			result := lygo_regex.Numbers(text)
@@ -63,7 +63,7 @@ func (tool *ScriptingToolRegExps) MatchNumbers(call goja.FunctionCall) goja.Valu
 func (tool *ScriptingToolRegExps) MatchPrices(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		text := tool.getArgsString(args)
+		text := lygo_scripting_utils.GetArgsString(tool.context, args)
 		if len(text) > 0 {
 
 			result := lygo_regex.Prices(text)
@@ -85,7 +85,7 @@ func (tool *ScriptingToolRegExps) MatchPrices(call goja.FunctionCall) goja.Value
 func (tool *ScriptingToolRegExps) HasMatchExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.Match(text, pattern)
@@ -104,7 +104,7 @@ func (tool *ScriptingToolRegExps) HasMatchExp(call goja.FunctionCall) goja.Value
 func (tool *ScriptingToolRegExps) MatchAllExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.Match(text, pattern)
@@ -145,7 +145,7 @@ func (tool *ScriptingToolRegExps) MatchAtExp(call goja.FunctionCall) goja.Value 
 func (tool *ScriptingToolRegExps) MatchFirstExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.Match(text, pattern)
@@ -166,7 +166,7 @@ func (tool *ScriptingToolRegExps) MatchFirstExp(call goja.FunctionCall) goja.Val
 func (tool *ScriptingToolRegExps) MatchLastExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.Match(text, pattern)
@@ -208,7 +208,7 @@ func (tool *ScriptingToolRegExps) MatchBetweenExp(call goja.FunctionCall) goja.V
 func (tool *ScriptingToolRegExps) IndexExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.MatchIndex(text, pattern)
@@ -229,7 +229,7 @@ func (tool *ScriptingToolRegExps) IndexExp(call goja.FunctionCall) goja.Value {
 func (tool *ScriptingToolRegExps) IndexFirstExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.MatchIndex(text, pattern)
@@ -251,7 +251,7 @@ func (tool *ScriptingToolRegExps) IndexFirstExp(call goja.FunctionCall) goja.Val
 func (tool *ScriptingToolRegExps) IndexLastExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.MatchIndex(text, pattern)
@@ -294,7 +294,7 @@ func (tool *ScriptingToolRegExps) IndexStartAtExp(call goja.FunctionCall) goja.V
 func (tool *ScriptingToolRegExps) IndexLenPairExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.IndexLenPair(text, pattern, 0)
@@ -315,7 +315,7 @@ func (tool *ScriptingToolRegExps) IndexLenPairExp(call goja.FunctionCall) goja.V
 func (tool *ScriptingToolRegExps) IndexLenPairLastExp(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.IndexLenPair(text, pattern, 0)
@@ -340,7 +340,7 @@ func (tool *ScriptingToolRegExps) IndexLenPairLastExp(call goja.FunctionCall) go
 func (tool *ScriptingToolRegExps) HasMatch(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.WildcardMatch(text, pattern)
@@ -359,7 +359,7 @@ func (tool *ScriptingToolRegExps) HasMatch(call goja.FunctionCall) goja.Value {
 func (tool *ScriptingToolRegExps) MatchAll(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.WildcardMatch(text, pattern)
@@ -400,7 +400,7 @@ func (tool *ScriptingToolRegExps) MatchAt(call goja.FunctionCall) goja.Value {
 func (tool *ScriptingToolRegExps) MatchFirst(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.WildcardMatch(text, pattern)
@@ -421,7 +421,7 @@ func (tool *ScriptingToolRegExps) MatchFirst(call goja.FunctionCall) goja.Value 
 func (tool *ScriptingToolRegExps) MatchLast(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			result := lygo_regex.WildcardMatch(text, pattern)
@@ -467,7 +467,7 @@ func (tool *ScriptingToolRegExps) MatchBetween(call goja.FunctionCall) goja.Valu
 func (tool *ScriptingToolRegExps) Index(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.WildcardMatchIndex(text, pattern)
@@ -488,7 +488,7 @@ func (tool *ScriptingToolRegExps) Index(call goja.FunctionCall) goja.Value {
 func (tool *ScriptingToolRegExps) IndexFirst(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.WildcardMatchIndex(text, pattern)
@@ -510,7 +510,7 @@ func (tool *ScriptingToolRegExps) IndexFirst(call goja.FunctionCall) goja.Value 
 func (tool *ScriptingToolRegExps) IndexLast(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.WildcardMatchIndex(text, pattern)
@@ -553,7 +553,7 @@ func (tool *ScriptingToolRegExps) IndexStartAt(call goja.FunctionCall) goja.Valu
 func (tool *ScriptingToolRegExps) IndexLenPair(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.WildcardIndexLenPair(text, pattern, 0)
@@ -574,7 +574,7 @@ func (tool *ScriptingToolRegExps) IndexLenPair(call goja.FunctionCall) goja.Valu
 func (tool *ScriptingToolRegExps) IndexLenPairLast(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		pattern, text := tool.getArgsStringString(args)
+		pattern, text := lygo_scripting_utils.GetArgsStringString(tool.context, args)
 		if len(pattern) > 0 && len(text) > 0 {
 
 			response := lygo_regex.WildcardIndexLenPair(text, pattern, 0)
@@ -626,47 +626,6 @@ func (tool *ScriptingToolRegExps) Score(call goja.FunctionCall) goja.Value {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (tool *ScriptingToolRegExps) getArgsString(args []goja.Value) string {
-
-	var argCtx string
-
-	if len(args) > 0 {
-		argCtx = lygo_conv.ToString(args[0].Export())
-	}
-
-	// fallback on context for latest arg
-	if len(argCtx) == 0 {
-		if nil != tool.context {
-			argCtx = lygo_conv.ToString(tool.context)
-		}
-	}
-
-	return argCtx
-}
-
-func (tool *ScriptingToolRegExps) getArgsStringString(args []goja.Value) (string, string) {
-	var arg1 string
-	var argCtx string
-
-	if len(args) > 0 {
-		arg1 = lygo_conv.ToString(args[0].Export())
-		if len(arg1) > 0 {
-
-			if len(args) == 2 {
-				argCtx = lygo_conv.ToString(args[1].Export())
-			}
-		}
-
-		// fallback on context for latest arg
-		if len(argCtx) == 0 {
-			if nil != tool.context {
-				argCtx = lygo_conv.ToString(tool.context)
-			}
-		}
-	}
-
-	return arg1, argCtx
-}
 
 func (tool *ScriptingToolRegExps) getArgsStringIntString(args []goja.Value) (string, int, string) {
 	var arg1 string

@@ -107,6 +107,30 @@ func TestDatabase(t *testing.T) {
 	}
 }
 
+func TestQuery(t *testing.T) {
+	item := &map[string]interface{}{
+		"_key": "1",
+		"name": "Mario",
+		"age":  22,
+	}
+
+	query := new (lygo_db_bolt.BoltQuery)
+	text, err := lygo_io.ReadTextFromFile("./query.json")
+	if nil != err {
+		t.Error(err)
+		t.FailNow()
+	}
+	query.Parse(text)
+
+	match := query.MatchFilter(item)
+	if !match{
+		t.Error("Query do not match")
+		t.FailNow()
+	}
+
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------

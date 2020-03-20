@@ -133,6 +133,32 @@ func (instance *BoltCollection) GetByFieldValue(fieldName string, fieldValue int
 	return response, nil
 }
 
+func (instance *BoltCollection) Find(query *BoltQuery) ([]interface{}, error) {
+	response := make([]interface{}, 0)
+	if nil != instance && nil != instance.db {
+		err := instance.db.View(func(tx *bbolt.Tx) error {
+			b := tx.Bucket([]byte(instance.name))
+			if nil != b {
+				c := b.Cursor()
+				for k, v := c.First(); k != nil; k, v = c.Next() {
+					var entity interface{}
+					err := json.Unmarshal(v, &entity)
+					if nil == err {
+						if query.MatchFilter(entity) {
+							response = append(response, entity)
+						}
+					}
+				}
+			} else {
+				return ErrCollectionDoesNotExists
+			}
+			return nil
+		})
+		return response, err
+	}
+	return response, nil
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
