@@ -443,3 +443,25 @@ func TestToolCSV(t *testing.T) {
 	fmt.Println(v)
 
 }
+
+func TestToolRegExpsScore(t *testing.T) {
+
+	vm := lygo_scripting.New()
+
+	TEXT, err := lygo_io.ReadTextFromFile("./script_text_score.js")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+		return
+	}
+
+	v, err := vm.RunString(TEXT)
+	if err != nil {
+		panic(err)
+	}
+
+	//value := v.Export().(float32)
+	fmt.Println(v)
+
+}
+

@@ -1,4 +1,4 @@
-package lygo_scripting
+package lygo_scripting_utils
 
 import (
 	"github.com/botikasm/lygo/base/lygo_conv"

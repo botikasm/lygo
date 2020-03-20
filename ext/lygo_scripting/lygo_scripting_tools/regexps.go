@@ -4,7 +4,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/base/lygo_strings"
-	"github.com/botikasm/lygo/ext/lygo_scripting"
+	"github.com/botikasm/lygo/ext/lygo_scripting/lygo_scripting_utils"
 	"github.com/dop251/goja"
 )
 
@@ -604,9 +604,9 @@ func (tool *ScriptingToolRegExps) IndexLenPairLast(call goja.FunctionCall) goja.
 func (tool *ScriptingToolRegExps) Score(call goja.FunctionCall) goja.Value {
 	args := call.Arguments
 	if len(args) > 0 {
-		phrase, expressionsTxt, mode := lygo_scripting.GetArgsStringStringString(tool.context, args)
+		phrase, expressionsTxt, mode := lygo_scripting_utils.GetArgsStringStringString(tool.context, args)
 		if len(phrase) > 0 && len(expressionsTxt) > 0 {
-			expressions := lygo_strings.Split(expressionsTxt, "|")
+			expressions := lygo_strings.SplitTrimSpace(expressionsTxt, "|")
 			if len(expressions) > 0 {
 				switch mode {
 				case "all":

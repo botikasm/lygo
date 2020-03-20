@@ -74,6 +74,18 @@ func Split(s string, seps string) []string {
 	})
 }
 
+func SplitTrim(s string, seps string, cutset string) []string {
+	data := Split(s, seps)
+	for i, item := range data {
+		data[i] = strings.Trim(item, cutset)
+	}
+	return data
+}
+
+func SplitTrimSpace(s string, seps string) []string {
+	return SplitTrim(s, seps, " ")
+}
+
 // get a substring
 // @param s string The string
 // @param start int Start index
