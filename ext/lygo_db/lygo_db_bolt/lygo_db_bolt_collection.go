@@ -118,7 +118,7 @@ func (instance *BoltCollection) GetByFieldValue(fieldName string, fieldValue int
 					err := json.Unmarshal(v, &entity)
 					if nil == err {
 						value := lygo_reflect.Get(entity, fieldName)
-						if value == fieldValue {
+						if lygo_conv.Equals(fieldValue, value) {
 							response = append(response, entity)
 						}
 					}

@@ -3,6 +3,8 @@ package lygo_scripting_tools
 import (
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_regex"
+	"github.com/botikasm/lygo/base/lygo_strings"
+	"github.com/botikasm/lygo/ext/lygo_scripting"
 	"github.com/dop251/goja"
 )
 
@@ -584,6 +586,40 @@ func (tool *ScriptingToolRegExps) IndexLenPairLast(call goja.FunctionCall) goja.
 	}
 
 	return tool.runtime.ToValue([]int{})
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	n a t u r a l   l a n g u a g e    p r o c e s s i n g
+//----------------------------------------------------------------------------------------------------------------------
+
+// Calculate a matching score between a phrase and a check test using expressions.
+// ALL expressions are evaluated.
+// Score result is different if there's more than one expression (separated by "|" symbol).
+// If mode equals "all": Failed expressions add negative score to result
+// If mode equals "any": Failed expressions do not add negative score to result
+// If mode equals "best": Failed expressions do not add negative score to result and best score is returned
+// @param [string] phrase. "hello humanity!! I'm Mario rossi"
+// @param [string] expressions. All expressions to match separated by | (pipe) hel??0 h* | I* * ros*"
+// @param [string] mode. "all", "any", "best"
+func (tool *ScriptingToolRegExps) Score(call goja.FunctionCall) goja.Value {
+	args := call.Arguments
+	if len(args) > 0 {
+		phrase, expressionsTxt, mode := lygo_scripting.GetArgsStringStringString(tool.context, args)
+		if len(phrase) > 0 && len(expressionsTxt) > 0 {
+			expressions := lygo_strings.Split(expressionsTxt, "|")
+			if len(expressions) > 0 {
+				switch mode {
+				case "all":
+					return tool.runtime.ToValue(lygo_regex.WildcardScoreAll(phrase, expressions))
+				case "any":
+					return tool.runtime.ToValue(lygo_regex.WildcardScoreAny(phrase, expressions))
+				default:
+					return tool.runtime.ToValue(lygo_regex.WildcardScoreBest(phrase, expressions))
+				}
+			}
+		}
+	}
+	return tool.runtime.ToValue(0.0)
 }
 
 //----------------------------------------------------------------------------------------------------------------------

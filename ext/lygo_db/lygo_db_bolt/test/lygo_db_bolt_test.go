@@ -82,6 +82,9 @@ func TestDatabase(t *testing.T) {
 	}
 	fmt.Println(item_des)
 
+	data, err := coll.GetByFieldValue("age", 22)
+	fmt.Println(data)
+
 	// remove collection
 	err = coll.Drop()
 	if nil != err {

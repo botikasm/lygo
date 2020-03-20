@@ -263,6 +263,30 @@ func Equals(val1, val2 interface{}) bool {
 	return false
 }
 
+func NotEquals(val1, val2 interface{}) bool {
+	if val1 == val2 {
+		return true
+	}
+
+	if b, v := IsString(val1); b {
+		return v != ToString(val2)
+	}
+	if b, v := IsInt(val1); b {
+		return v != ToInt(val2)
+	}
+	if b, v := IsFloat32(val1); b {
+		return v != ToFloat32(val2)
+	}
+	if b, v := IsFloat64(val1); b {
+		return v != ToFloat64(val2)
+	}
+	if b, v := IsBool(val1); b {
+		return v != ToBool(val2)
+	}
+
+	return false
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------

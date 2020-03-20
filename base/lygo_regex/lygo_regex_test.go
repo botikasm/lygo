@@ -2,6 +2,7 @@ package lygo_regex
 
 import (
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_strings"
 	"reflect"
 	"testing"
 )
@@ -10,16 +11,16 @@ func TestIsValidJSON(t *testing.T) {
 	obj := "{\"name\": \"foo\"}"
 	array := "[{\"name\": \"foo\"}]"
 
-	if !IsValidJsonObject(obj){
+	if !IsValidJsonObject(obj) {
 		t.Errorf("Not a valid object %v", obj)
 	}
-	if !IsValidJsonArray(array){
+	if !IsValidJsonArray(array) {
 		t.Errorf("Not a valid array %v", array)
 	}
-	if IsValidJsonObject("obj"){
+	if IsValidJsonObject("obj") {
 		t.Error("NOT A JSON")
 	}
-	if IsValidJsonArray("obj"){
+	if IsValidJsonArray("obj") {
 		t.Error("NOT A JSON")
 	}
 }
@@ -30,26 +31,64 @@ func TestIndexStartAt(t *testing.T) {
 	offset := 1
 
 	result := WildcardIndex(text, pattern, offset)
-	if len(result)!=2{
+	if len(result) != 2 {
 		t.Error("Expected 2 matching")
 	} else {
-		if result[0]!=5{
+		if result[0] != 5 {
 			t.Error("Expected 5", result[0])
 		}
-		if result[1]!=30{
+		if result[1] != 30 {
 			t.Error("Expected 30", result[1])
 		}
 	}
 }
 
+func TestWildCardScore(t *testing.T) {
+	text := "this is sample text with som 'is' inside and more"
+	expressions := []string{"thi? is", "tex* * so?"}
+	fmt.Println("all:", WildcardScoreAll(text, expressions),
+		"any:", WildcardScoreAny(text, expressions),
+		"best:", WildcardScoreBest(text, expressions),
+		"\t", text, " ", lygo_strings.ConcatSep(", ", expressions))
+
+	text = "this os sample | ssddfgr good"
+	expressions = []string{"thi? ?s", "sampl? * * good"}
+	fmt.Println("all:", WildcardScoreAll(text, expressions),
+		"any:", WildcardScoreAny(text, expressions),
+		"best:", WildcardScoreBest(text, expressions),
+		"\t", text, " ", lygo_strings.ConcatSep(", ", expressions))
+
+	text = "this oss sample | ssddfgr good"
+	expressions = []string{"thi? ?s", "sampl? * * good"}
+	fmt.Println("all:", WildcardScoreAll(text, expressions),
+		"any:", WildcardScoreAny(text, expressions),
+		"best:", WildcardScoreBest(text, expressions),
+		"\t", text, " ", lygo_strings.ConcatSep(", ", expressions))
+
+	text = "this oss sample | ssddfgr good"
+	expressions = []string{"thi? ?s"}
+	fmt.Println("all:", WildcardScoreAll(text, expressions),
+		"any:", WildcardScoreAny(text, expressions),
+		"best:", WildcardScoreBest(text, expressions),
+		"\t", text, " ", lygo_strings.ConcatSep(", ", expressions))
+
+	text = "this oss sample | ssddfgr good"
+	expressions = []string{"sampl? * * good"}
+	fmt.Println("all:", WildcardScoreAll(text, expressions),
+		"any:", WildcardScoreAny(text, expressions),
+		"best:", WildcardScoreBest(text, expressions),
+		"\t", text, " ", lygo_strings.ConcatSep(", ", expressions))
+
+}
+
 func TestIWildcardMatchBetween(t *testing.T) {
 	text := "this is sample \ntext with som 'is' inside\n and more"
 	patternStart := "is"
-	patternEnd:= "\n"
+	patternEnd := "\n"
 	offset := 1
 
 	result := WildcardMatchBetween(text, offset, patternStart, patternEnd, " '")
-	if len(result)!=2{
+	if len(result) != 2 {
 		t.Error("Expected 2 matching")
 	} else {
 		fmt.Println(result)
@@ -62,13 +101,13 @@ func TestIndexLenPair(t *testing.T) {
 	offset := 1
 
 	result := WildcardIndexLenPair(text, pattern, offset)
-	if len(result)!=2{
+	if len(result) != 2 {
 		t.Error("Expected 2 matching")
 	} else {
-		if result[0][0]!=5{
+		if result[0][0] != 5 {
 			t.Error("Expected 5", result[0])
 		}
-		if result[1][0]!=30{
+		if result[1][0] != 30 {
 			t.Error("Expected 30", result[1])
 		}
 	}
@@ -681,7 +720,7 @@ func TestWildCard(t *testing.T) {
 	text := "codice codoce codice\ncodice coaudace, codice, some other text here       "
 	want := []string{"codice", "codoce", "codice", "codice", "codice"}
 	got := WildcardMatch(text, expression)
-	if !reflect.DeepEqual(got, want){
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("WildcardMatch() = %v, want %v", got, want)
 	}
 
@@ -689,7 +728,7 @@ func TestWildCard(t *testing.T) {
 	text = "codice codoce cod ce\ncodice"
 	want = []string{"cod ce"}
 	got = WildcardMatch(text, expression)
-	if !reflect.DeepEqual(got, want){
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("WildcardMatch() = %v, want %v", got, want)
 	}
 
@@ -697,7 +736,7 @@ func TestWildCard(t *testing.T) {
 	text = "cod  80 Cod. 80"
 	want = []string{"cod  80"}
 	got = WildcardMatch(text, expression)
-	if !reflect.DeepEqual(got, want){
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("WildcardMatch() = %v, want %v", got, want)
 	}
 
@@ -705,7 +744,7 @@ func TestWildCard(t *testing.T) {
 	text = "cod  80  e novanta Cod. 80"
 	want = []string{"cod  80", "Cod. 80"}
 	got = WildcardMatch(text, expression)
-	if !reflect.DeepEqual(got, want){
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("WildcardMatch() = %v, want %v", got, want)
 	}
 
@@ -713,7 +752,7 @@ func TestWildCard(t *testing.T) {
 	text = "cod  80  e novanta Cod. 90"
 	want = []string{"cod  80"}
 	got = WildcardMatch(text, expression)
-	if !reflect.DeepEqual(got, want){
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("WildcardMatch() = %v, want %v", got, want)
 	}
 }

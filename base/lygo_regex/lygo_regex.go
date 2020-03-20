@@ -182,6 +182,88 @@ func IsValidJsonArray(text string) bool {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+//	n l p    u t i l s
+//----------------------------------------------------------------------------------------------------------------------
+
+// Calculate a matching score between a phrase and a check test using expressions.
+// ALL expressions are evaluated.
+// Failed expressions  add negative score to result
+// @param [string] phrase. "hello humanity!! I'm Mario rossi"
+// @param [string] expressions. All expressions to match. ["hel??0 h*", "I* * ros*"]
+func WildcardScoreAll(phrase string, expressions []string) float32 {
+
+	countWords := float32(len(lygo_strings.Split(phrase, " ")))
+	countExpressions := float32(len(expressions))
+
+	expressionScore := float32(0)
+	failScore := float32(0)
+	for _, expression := range expressions {
+		matchedWords := WildcardMatch(phrase, expression)
+		if len(matchedWords) > 0 {
+			// matching
+			for _, matched := range matchedWords {
+				expressionScore += float32(len(lygo_strings.Split(matched, " "))) / countWords
+			}
+		} else {
+			// no matching
+			failScore += 1 / countExpressions
+		}
+	}
+
+	return expressionScore - failScore
+}
+
+// Calculate a matching score between a phrase and a check test using expressions.
+// ALL expressions are evaluated.
+// Failed expressions  do not add negative score to result
+// @param [string] phrase. "hello humanity!! I'm Mario rossi"
+// @param [string] expressions. All expressions to match. ["hel??0 h*", "I* * ros*"]
+func WildcardScoreAny(phrase string, expressions []string) float32 {
+	countWords := float32(len(lygo_strings.Split(phrase, " ")))
+	// countExpressions := float32(len(expressions))
+
+	expressionScore := float32(0)
+	for _, expression := range expressions {
+		matchedWords := WildcardMatch(phrase, expression)
+		if len(matchedWords) > 0 {
+			// matching
+			for _, matched := range matchedWords {
+				expressionScore += float32(len(lygo_strings.Split(matched, " "))) / countWords
+			}
+		}
+	}
+
+	return expressionScore
+}
+
+// Calculate a matching score between a phrase and a check test using expressions.
+// ALL expressions are evaluated.
+// Failed expressions  do not add negative score to result.
+// Return best score above all
+// @param [string] phrase. "hello humanity!! I'm Mario rossi"
+// @param [string] expressions. All expressions to match. ["hel??0 h*", "I* * ros*"]
+func WildcardScoreBest(phrase string, expressions []string) float32 {
+	countWords := float32(len(lygo_strings.Split(phrase, " ")))
+	// countExpressions := float32(len(expressions))
+
+	expressionScore := float32(0)
+	for _, expression := range expressions {
+		matchedWords := WildcardMatch(phrase, expression)
+		if len(matchedWords) > 0 {
+			// matching
+			for _, matched := range matchedWords {
+				score := float32(len(lygo_strings.Split(matched, " "))) / countWords
+				if score > expressionScore {
+					expressionScore = score
+				}
+			}
+		}
+	}
+
+	return expressionScore
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 //	w i l d c a r d    l o o k u p
 //----------------------------------------------------------------------------------------------------------------------
 
