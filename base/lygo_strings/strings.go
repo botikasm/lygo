@@ -30,8 +30,8 @@ func Concat(params ...interface{}) string {
 
 func ConcatSep(separator string, params ...interface{}) string {
 	result := ""
-	for _, v := range params {
-		value := lygo_conv.ToString(v)
+	strParams := lygo_conv.ToArrayOfString(params...)
+	for _, value := range strParams {
 		if len(result) > 0 {
 			result += separator
 		}
@@ -100,6 +100,25 @@ func Sub(s string, start int, end int) string {
 	runes := []rune(s) // convert in rune to handle all characters.
 
 	return string(runes[start:end])
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	C a m e l    C a s e
+//----------------------------------------------------------------------------------------------------------------------
+
+func CapitalizeAll(text string) string {
+	return strings.Title(text)
+}
+
+func CapitalizeFirst(text string) string {
+	if len(text) > 0 {
+		words := Split(text, " ")
+		if len(words) > 0 {
+			words[0] = strings.Title(words[0])
+			return ConcatSep(" ", words)
+		}
+	}
+	return text
 }
 
 //----------------------------------------------------------------------------------------------------------------------

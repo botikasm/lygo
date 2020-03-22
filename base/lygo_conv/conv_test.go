@@ -1,6 +1,9 @@
 package lygo_conv
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestToString(t *testing.T) {
 	type args struct {
@@ -25,4 +28,23 @@ func TestToString(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestToArray(t *testing.T) {
+	arr := ToArray([]string{"1", "2"})
+	assert.EqualValues(t, []interface{}{"1", "2"}, arr, "Unexpected value")
+
+	arr = ToArray([]int{1, 2})
+	assert.EqualValues(t, []interface{}{1, 2}, arr, "Unexpected value")
+}
+
+func TestToArrayOfString(t *testing.T) {
+	arr := ToArrayOfString([]string{"1", "2"})
+	assert.EqualValues(t, []string{"1", "2"}, arr, "Unexpected value")
+
+	arr = ToArrayOfString([]int{1, 2})
+	assert.EqualValues(t, []string{"1", "2"}, arr, "Unexpected value")
+
+	arr = ToArrayOfString([]interface{}{1, 2})
+	assert.EqualValues(t, []string{"1", "2"}, arr, "Unexpected value")
 }

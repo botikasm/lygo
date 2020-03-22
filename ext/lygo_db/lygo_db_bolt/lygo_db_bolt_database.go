@@ -101,6 +101,16 @@ func (instance *BoltDatabase) Drop() error {
 	return nil
 }
 
+func (instance *BoltDatabase) Size() (int64, error) {
+	if nil != instance && nil != instance.db {
+		path := instance.db.Path()
+		if len(path) > 0 {
+			return lygo_io.FileSize(path)
+		}
+	}
+	return 0, ErrDatabaseIsNotConnected
+}
+
 func (instance *BoltDatabase) CollectionAutoCreate(name string) (*BoltCollection, error) {
 	return instance.Collection(name, true)
 }

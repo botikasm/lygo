@@ -22,8 +22,9 @@ func TestSimple(t *testing.T) {
 		t.Fail()
 		t.Errorf("Expected 'Foo', but got '%v'", name)
 	}
-	if _, b := Set(doc, "Name", "Test"); b {
-		t.Fail()
+	if b := Set(doc, "Name", "Test"); !b {
+		t.FailNow()
+		t.Error("Unable to set value")
 	}
 	name = Get(doc, "Name")
 	if name != "Test" {
@@ -40,7 +41,7 @@ func TestSimple(t *testing.T) {
 	if name != "Foo" {
 		t.Fail()
 	}
-	_, b := Set(mdoc, "Name", "Test")
+	b := Set(mdoc, "Name", "Test")
 	if !b {
 		t.Fail()
 	}

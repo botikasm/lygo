@@ -12,19 +12,19 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
-func ToArray(val interface{}) []interface{} {
+func ToArray(val ...interface{}) []interface{} {
 	if nil == val {
 		return nil
 	}
-	_, aa := toArray(val)
+	aa := toArray(val...)
 	return aa
 }
 
-func ToArrayOfString(val interface{}) []string {
+func ToArrayOfString(val ...interface{}) []string {
 	if nil == val {
 		return nil
 	}
-	_, aa := toArrayOfString(val)
+	aa := toArrayOfString(val...)
 	return aa
 }
 
@@ -89,31 +89,99 @@ func ToInt(val interface{}) int {
 }
 
 func ToIntDef(val interface{}, def int) int {
-	s := ToString(val)
-	v, err := strconv.Atoi(s)
-	if nil == err {
-		return v
+	if b, s := IsString(val); b {
+		v, err := strconv.Atoi(s)
+		if nil == err {
+			return v
+		}
 	}
+	switch i := val.(type) {
+	case float32:
+		return int(i)
+	case float64:
+		return int(i)
+	case int:
+		return i
+	case int8:
+		return int(i)
+	case int16:
+		return int(i)
+	case int32:
+		return int(i)
+	case int64:
+		return int(i)
+	}
+
 	return def
 }
 
 func ToFloat32(val interface{}) float32 {
-	v, vv := val.(float32)
-	if vv {
-		return v
+	return ToFloat32Def(val, -1)
+}
+
+func ToFloat32Def(val interface{}, defVal float32) float32 {
+	if b, s := IsString(val); b {
+		v, err := strconv.ParseFloat(s, 32)
+		if nil == err {
+			return float32(v)
+		}
 	}
-	return 0
+	switch i := val.(type) {
+	case float32:
+		return i
+	case float64:
+		return float32(i)
+	case int:
+		return float32(i)
+	case int8:
+		return float32(i)
+	case int16:
+		return float32(i)
+	case int32:
+		return float32(i)
+	case int64:
+		return float32(i)
+	}
+	return defVal
 }
 
 func ToFloat64(val interface{}) float64 {
-	v, vv := val.(float64)
-	if vv {
-		return v
+	return ToFloat64Def(val, -1.0)
+}
+
+func ToFloat64Def(val interface{}, defVal float64) float64 {
+	if b, s := IsString(val); b {
+		v, err := strconv.ParseFloat(s, 64)
+		if nil == err {
+			return v
+		}
 	}
-	return 0
+	switch i := val.(type) {
+	case float32:
+		return float64(i)
+	case float64:
+		return i
+	case int:
+		return float64(i)
+	case int8:
+		return float64(i)
+	case int16:
+		return float64(i)
+	case int32:
+		return float64(i)
+	case int64:
+		return float64(i)
+	}
+	return defVal
 }
 
 func ToBool(val interface{}) bool {
+	if b, s := IsString(val); b {
+		v, err := strconv.ParseBool(s)
+		if nil == err {
+			return v
+		}
+	}
 	v, vv := val.(bool)
 	if vv {
 		return v
@@ -291,28 +359,33 @@ func NotEquals(val1, val2 interface{}) bool {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func toArray(val interface{}) (bool, []interface{}) {
+func toArray(args ...interface{}) []interface{} {
 	response := []interface{}{}
-	aa, tt := IsArray(val)
-	if aa {
-		for i := 0; i < tt.Len(); i++ {
-			v := tt.Index(i).Interface()
-			response = append(response, v)
+	for _, val := range args {
+		aa, tt := IsArray(val)
+		if aa {
+			for i := 0; i < tt.Len(); i++ {
+				v := tt.Index(i).Interface()
+				response = append(response, v)
+			}
 		}
 	}
-	return aa, response
+	return response
 }
 
-func toArrayOfString(val interface{}) (bool, []string) {
+func toArrayOfString(args ...interface{}) []string {
 	response := []string{}
-	aa, tt := IsArray(val)
-	if aa {
-		for i := 0; i < tt.Len(); i++ {
-			v := tt.Index(i).Interface()
-			response = append(response, ToString(v))
+	for _, val := range args {
+		b, tt := IsArray(val)
+		if b {
+			for i := 0; i < tt.Len(); i++ {
+				v := tt.Index(i).Interface()
+				response = append(response, ToString(v))
+			}
 		}
 	}
-	return aa, response
+
+	return response
 }
 
 func toMap(val interface{}) map[string]interface{} {

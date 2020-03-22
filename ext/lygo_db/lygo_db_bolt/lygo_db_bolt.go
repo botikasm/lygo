@@ -9,6 +9,7 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 var (
+	ErrDatabaseIsNotConnected = errors.New("database_is_not_connected")
 	ErrCollectionDoesNotExists = errors.New("collection_does_not_exists")
 	ErrMissingDocumentKey = errors.New("document_missing_key")
 )

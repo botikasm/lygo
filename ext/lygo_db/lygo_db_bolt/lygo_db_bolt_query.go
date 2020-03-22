@@ -3,6 +3,7 @@ package lygo_db_bolt
 import (
 	"encoding/json"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_reflect"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"strings"
@@ -42,6 +43,19 @@ type BoltQueryCondition struct {
 //----------------------------------------------------------------------------------------------------------------------
 //	BoltQuery
 //----------------------------------------------------------------------------------------------------------------------
+
+func NewQueryFromFile(path string) (*BoltQuery, error) {
+	query := new(BoltQuery)
+	text, err := lygo_io.ReadTextFromFile(path)
+	if nil != err {
+		return nil, err
+	}
+	err = query.Parse(text)
+	if nil != err {
+		return nil, err
+	}
+	return query, nil
+}
 
 func (instance *BoltQuery) Parse(text string) error {
 	return json.Unmarshal([]byte(text), &instance)
@@ -126,7 +140,11 @@ func getValue(entity interface{}, propertyOrValue interface{}) interface{} {
 				field = tokens[1]
 			}
 			if len(field) > 0 {
-				return lygo_reflect.Get(entity, field)
+				r := lygo_reflect.Get(entity, field)
+				if nil!=r{
+					return r
+				}
+				return lygo_reflect.Get(entity, lygo_strings.CapitalizeAll(field))
 			}
 		}
 	}

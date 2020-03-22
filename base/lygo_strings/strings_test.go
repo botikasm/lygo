@@ -56,3 +56,24 @@ func TestTrimSpaces(t *testing.T) {
 	}
 }
 
+func TestCapitalizeFirst(t *testing.T) {
+	response := CapitalizeFirst("lower words")
+	if response!="Lower words"{
+		t.Error("Failed")
+		t.FailNow()
+	}
+
+	response = CapitalizeFirst("lower")
+	if response!="Lower"{
+		t.Error("Failed")
+		t.FailNow()
+	}
+
+	response = CapitalizeFirst("")
+	if response!=""{
+		t.Error("Failed")
+		t.FailNow()
+	}
+}
+
+

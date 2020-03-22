@@ -13,6 +13,14 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func FileSize(filename string) (int64, error) {
+	info, err := os.Stat(filename)
+	if nil!=err{
+		return 0, err
+	}
+	return info.Size(), nil
+}
+
 func Remove(filename string) error {
 	return os.Remove(filename)
 }
