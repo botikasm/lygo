@@ -217,7 +217,7 @@ func (instance *ArangoCollection) RemoveIndex(fields []string) (bool, error) {
 	if nil != instance && instance.IsReady() {
 		ctx := context.Background()
 
-		name := instance.getIndexName("hash", fields)
+		name := instance.getIndexName("persist", fields)
 		index, err := instance.collection.Index(ctx, name)
 		if nil != err {
 			return false, err
@@ -254,12 +254,12 @@ func (instance *ArangoCollection) EnsureIndex(fields []string, unique bool) (boo
 		instance.RemoveIndex(fields)
 
 		ctx := context.Background()
-		options := &driver.EnsureHashIndexOptions{
-			Name:   instance.getIndexName("hash", fields),
+		options := &driver.EnsurePersistentIndexOptions{
+			Name:   instance.getIndexName("persist", fields),
 			Unique: unique,
 		}
 
-		_, b, err := instance.collection.EnsureHashIndex(ctx, fields, options)
+		_, b, err := instance.collection.EnsurePersistentIndex(ctx, fields, options)
 		if nil != err {
 			return false, err
 		}
@@ -293,7 +293,7 @@ func (instance *ArangoCollection) EnsureGeoIndex(fields []string, geoJson bool) 
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *ArangoCollection) getIndexName(prefix string, fields interface{}) string {
+func (instance *ArangoCollection) getIndexName(prefix string, fields []string) string {
 	a := lygo_conv.ToArray(fields)
 	return prefix + "_" + lygo_strings.ConcatSep("_", a...)
 }

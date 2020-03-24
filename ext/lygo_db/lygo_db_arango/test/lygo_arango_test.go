@@ -222,6 +222,17 @@ func TestImport(t *testing.T) {
 		// fmt.Println(err)
 		t.Error(err)
 	}
+
+	coll, err := db.Collection("toImport", false)
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+	}
+	_, err = coll.EnsureIndex([]string{"name"}, false)
+	if nil != err {
+		// fmt.Println(err)
+		t.Error(err)
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

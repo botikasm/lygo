@@ -368,6 +368,8 @@ func toArray(args ...interface{}) []interface{} {
 				v := tt.Index(i).Interface()
 				response = append(response, v)
 			}
+		}else {
+			response = append(response, ToString(val))
 		}
 	}
 	return response
@@ -382,6 +384,8 @@ func toArrayOfString(args ...interface{}) []string {
 				v := tt.Index(i).Interface()
 				response = append(response, ToString(v))
 			}
+		} else {
+			response = append(response, ToString(val))
 		}
 	}
 
