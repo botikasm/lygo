@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -28,6 +29,9 @@ func TestStruct(t *testing.T) {
 	}
 	name = a[0].Name
 	assert.EqualValues(t, "Angelo", name, "Unexpected value")
+
+	s := lygo_json.Stringify(a)
+	fmt.Println(s)
 }
 
 func TestMap(t *testing.T) {
@@ -38,6 +42,9 @@ func TestMap(t *testing.T) {
 	}
 	name := m["name"]
 	assert.EqualValues(t, "Angelo", name, "Unexpected value")
+
+	s := lygo_json.Stringify(m)
+	fmt.Println(s)
 }
 
 func TestArray(t *testing.T) {
@@ -48,4 +55,7 @@ func TestArray(t *testing.T) {
 	}
 	name := a[0]["name"]
 	assert.EqualValues(t, "Angelo", name, "Unexpected value")
+
+	s := lygo_json.Stringify(a)
+	fmt.Println(s)
 }

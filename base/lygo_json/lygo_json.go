@@ -9,6 +9,14 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func Stringify(entity interface{}) string {
+	b, err := json.Marshal(&entity)
+	if nil == err {
+		return string(b)
+	}
+	return ""
+}
+
 func ReadFromFile(fileName string, entity interface{}) error {
 	b, err := lygo_io.ReadBytesFromFile(fileName)
 	if nil != err {
