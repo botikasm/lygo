@@ -1,4 +1,4 @@
-LyGo 0.9.21
+LyGo 0.9.22
 -
 
 LyGo is a simple application library written in Go.
@@ -17,7 +17,7 @@ To add LyGo as a dependency use:
 
 `go get github.com/botikasm/lygo`
 
-`go get github.com/botikasm/lygo@v0.9.21`
+`go get github.com/botikasm/lygo@v0.9.22`
 
 To remove unused dependency use:
 
@@ -31,6 +31,6 @@ Version Tagging
 -
 To tag a version use:
 
-`git tag v0.9.21` 
+`git tag v0.9.22` 
 
-`git push origin v0.9.21`
+`git push origin v0.9.22`

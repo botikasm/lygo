@@ -2,11 +2,12 @@ package lygo_db_arango
 
 import (
 	"context"
+	"github.com/arangodb/go-driver"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_crypto"
 	"github.com/botikasm/lygo/base/lygo_reflect"
 	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/base/lygo_strings"
-	"github.com/arangodb/go-driver"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -276,7 +277,7 @@ func (instance *ArangoCollection) EnsureGeoIndex(fields []string, geoJson bool) 
 
 		ctx := context.Background()
 		options := &driver.EnsureGeoIndexOptions{
-			Name:   instance.getIndexName("geo", fields),
+			Name:    instance.getIndexName("geo", fields),
 			GeoJSON: geoJson,
 		}
 
@@ -295,7 +296,8 @@ func (instance *ArangoCollection) EnsureGeoIndex(fields []string, geoJson bool) 
 
 func (instance *ArangoCollection) getIndexName(prefix string, fields []string) string {
 	a := lygo_conv.ToArray(fields)
-	return prefix + "_" + lygo_strings.ConcatSep("_", a...)
+	name := prefix + "_" + lygo_strings.ConcatSep("_", a...)
+	return lygo_crypto.MD5(name)
 }
 
 func (instance *ArangoCollection) addKey(meta *driver.DocumentMeta, doc map[string]interface{}) bool {
