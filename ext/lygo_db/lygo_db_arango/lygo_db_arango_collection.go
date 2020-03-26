@@ -297,7 +297,7 @@ func (instance *ArangoCollection) EnsureGeoIndex(fields []string, geoJson bool) 
 func (instance *ArangoCollection) getIndexName(prefix string, fields []string) string {
 	a := lygo_conv.ToArray(fields)
 	name := prefix + "_" + lygo_strings.ConcatSep("_", a...)
-	return lygo_crypto.MD5(name)
+	return "idx_" + lygo_crypto.MD5(name)
 }
 
 func (instance *ArangoCollection) addKey(meta *driver.DocumentMeta, doc map[string]interface{}) bool {
