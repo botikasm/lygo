@@ -1,41 +1,24 @@
 package lygo_http_server
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
+	"crypto/tls"
 	"errors"
-	"expvar"
-	"fmt"
 	"github.com/botikasm/lygo/base/lygo_strings"
-	"github.com/valyala/fasthttp"
-	"math/big"
+	"github.com/gofiber/compression"
+	"github.com/gofiber/cors"
+	"github.com/gofiber/fiber"
+	"github.com/gofiber/limiter"
+	"github.com/gofiber/recover"
+	"log"
 	"sync"
 	"time"
 )
 
 var (
-	errorInvalidConfiguration = errors.New("Configuration is not valid")
+	errorInvalidConfiguration = errors.New("configuration_invalid")
 )
 
 const maxErrors = 100
-
-// Various counters - see https://golang.org/pkg/expvar/ for details.
-var (
-	// Counter for total number of fs calls
-	fsCalls = expvar.NewInt("fsCalls")
-
-	// Counters for various response status codes
-	fsOKResponses          = expvar.NewInt("fsOKResponses")
-	fsNotModifiedResponses = expvar.NewInt("fsNotModifiedResponses")
-	fsNotFoundResponses    = expvar.NewInt("fsNotFoundResponses")
-	fsOtherResponses       = expvar.NewInt("fsOtherResponses")
-
-	// Total size in bytes for OK response bodies served.
-	fsResponseBodyBytes = expvar.NewInt("fsResponseBodyBytes")
-)
 
 //----------------------------------------------------------------------------------------------------------------------
 //	t y p e s
@@ -45,21 +28,26 @@ type HttpServer struct {
 	Config *HttpServerConfig
 
 	//-- hooks --//
-	CallbackError ErrorHookCallback
+	CallbackError        ErrorHookCallback
+	CallbackLimitReached func(ctx *fiber.Ctx)
+
+	// ROUTING
+	Route *HttpServerConfigRoute
 
 	//-- private --//
-	started   bool
-	stopped   bool
-	fsHandler fasthttp.RequestHandler
-	errors    []error
-	muxError  sync.Mutex
+	_http    *fiber.Fiber
+	_https   *fiber.Fiber
+	started  bool
+	stopped  bool
+	errors   []error
+	muxError sync.Mutex
 }
 
 type HttpServerError struct {
 	Server  *HttpServer
 	Message string
 	Error   error
-	Context *fasthttp.RequestCtx
+	Context *fiber.Ctx
 }
 
 type ErrorHookCallback func(*HttpServerError)
@@ -71,6 +59,7 @@ type ErrorHookCallback func(*HttpServerError)
 func NewHttpServer(config *HttpServerConfig) *HttpServer {
 	instance := new(HttpServer)
 	instance.Config = config
+	instance.Route = NewHttpServerConfigRoute()
 	instance.stopped = false
 	instance.started = false
 
@@ -90,8 +79,7 @@ func (instance *HttpServer) Start() error {
 		instance.stopped = false
 
 		instance.initConfig()
-		instance.initFileServer()
-		instance.initFileStat()
+
 		instance.serve()
 
 	}
@@ -108,9 +96,14 @@ func (instance *HttpServer) Join() {
 
 func (instance *HttpServer) Stop() {
 	if !instance.stopped {
+		if nil != instance._http {
+			_ = instance._http.Shutdown()
+		}
+		if nil != instance._https {
+			_ = instance._https.Shutdown()
+		}
 		instance.stopped = true
 		instance.started = false
-
 	}
 }
 
@@ -118,40 +111,92 @@ func (instance *HttpServer) Stop() {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
+func (instance *HttpServer) http() *fiber.Fiber {
+	if nil == instance._http {
+		instance._http = fiber.New()
+		instance.configure(instance._http, instance.Config)
+	}
+	return instance._http
+}
+
+func (instance *HttpServer) https() *fiber.Fiber {
+	if nil == instance._https {
+		instance._https = fiber.New()
+		instance.configure(instance._https, instance.Config)
+	}
+	return instance._https
+}
+
+func (instance *HttpServer) configure(app *fiber.Fiber, config *HttpServerConfig) {
+	if nil != app {
+		cfg := recover.Config{
+			Handler: instance.onServerError,
+		}
+		app.Use(recover.New(cfg))
+
+		app.Settings.ServerHeader = config.ServerHeader
+		app.Settings.Prefork = config.Prefork
+		app.Settings.CaseSensitive = config.CaseSensitive
+		app.Settings.StrictRouting = config.StrictRouting
+		app.Settings.Immutable = config.Immutable
+		if config.BodyLimit > 0 {
+			app.Settings.BodyLimit = config.BodyLimit
+		}
+		if config.ReadTimeout > 0 {
+			app.Settings.ReadTimeout = config.ReadTimeout * time.Millisecond
+		}
+		if config.WriteTimeout > 0 {
+			app.Settings.WriteTimeout = config.WriteTimeout * time.Millisecond
+		}
+		if config.IdleTimeout > 0 {
+			app.Settings.IdleTimeout = config.IdleTimeout * time.Millisecond
+		}
+
+		// CORS
+		initCORS(app, instance.Config.CORS)
+
+		// compression
+		initCompression(app, instance.Config.Compression)
+
+		// limiter
+		initLimiter(app, instance.Config.Limiter, instance.onLimitReached)
+
+		// Route
+		if nil != instance.Route {
+			initRoute(app, instance.Route, nil)
+		}
+
+		// Static
+		if len(config.Static) > 0 {
+			for _, static := range config.Static {
+				if static.Enabled && len(static.Prefix) > 0 && len(static.Root) > 0 {
+					app.Static(static.Prefix, static.Root, fiber.Static{
+						Compress:  static.Compress,
+						ByteRange: static.ByteRange,
+						Browse:    static.Browse,
+						Index:     static.Index,
+					})
+				}
+			}
+		}
+	}
+}
+
 func (instance *HttpServer) initConfig() {
 	config := instance.Config
 	if nil != config {
-		if nil == config.IndexNames || len(config.IndexNames) == 0 {
-			config.IndexNames = append(config.IndexNames, "index.html")
+		for _, static := range config.Static {
+			if len(static.Index) == 0 {
+				static.Index = "index.html"
+			}
 		}
-	}
-}
-
-func (instance *HttpServer) initFileServer() {
-	config := instance.Config
-	if len(config.FileServerRoot) > 0 && config.FileServerEnabled {
-		fs := &fasthttp.FS{
-			Root:               config.FileServerRoot,
-			GenerateIndexPages: false,
-			Compress:           false,
-			AcceptByteRange:    false,
-		}
-		fs.IndexNames = append(fs.IndexNames, config.IndexNames...)
-		if config.VHost {
-			fs.PathRewrite = fasthttp.NewVHostPathRewriter(0)
-		}
-		instance.fsHandler = fs.NewRequestHandler()
-	}
-}
-
-func (instance *HttpServer) initFileStat() {
-	if instance.Config.StatEnabled {
-
 	}
 }
 
 func (instance *HttpServer) serve() {
+	// configure
 	config := instance.Config
+
 	if len(config.Address) > 0 {
 		// http
 		go instance.listenAndServe(config.Address)
@@ -163,32 +208,28 @@ func (instance *HttpServer) serve() {
 }
 
 func (instance *HttpServer) listenAndServe(addr string) {
-	if err := fasthttp.ListenAndServe(addr, instance.onHandle); err != nil {
-		// log.Fatalf("error in ListenAndServe: %s", err)
-		instance.doError(lygo_strings.Format("Error Opening channel: '%s'", instance.Config.Address), err, nil)
+	if err := instance.http().Listen(addr); err != nil {
+		instance.doError(lygo_strings.Format("Error Opening channel: '%s'", addr), err, nil)
 	}
 }
 
 func (instance *HttpServer) listenAndServeTLS(addr string, certFile string, keyFile string) {
 	if len(certFile) > 0 && len(keyFile) > 0 {
-		// use files
-		if err := fasthttp.ListenAndServeTLS(addr, certFile, keyFile, instance.onHandle); err != nil {
-			instance.doError(lygo_strings.Format("Error Opening TLS channel: '%s'", instance.Config.AddressTLS), err, nil)
+
+		cer, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			log.Fatal(err)
 		}
-	} else {
-		// auto-generate cert
-		cert, key, err := GenerateCert(addr)
-		if nil == err {
-			if err = fasthttp.ListenAndServeTLSEmbed(addr, cert, key, instance.onHandle); err != nil {
-				instance.doError("Error Opening TLS channel", err, nil)
-			}
-		} else {
-			instance.doError("Error Generating Certificate", err, nil)
+		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+		// use files
+		if err := instance.https().Listen(addr, config); err != nil {
+			instance.doError(lygo_strings.Format("Error Opening TLS channel: '%s'", addr), err, nil)
 		}
 	}
 }
 
-func (instance *HttpServer) doError(message string, err error, ctx *fasthttp.RequestCtx) {
+func (instance *HttpServer) doError(message string, err error, ctx *fiber.Ctx) {
 	instance.muxError.Lock()
 	go func() {
 		defer instance.muxError.Unlock()
@@ -208,42 +249,15 @@ func (instance *HttpServer) doError(message string, err error, ctx *fasthttp.Req
 	}()
 }
 
-func (instance *HttpServer) onHandle(ctx *fasthttp.RequestCtx) {
-	instance.stat(ctx)
-	path := ctx.Path()
-	if len(path) > 0 {
-
-		if instance.Config.StatEnabled && string(path) == "/stats" {
-			ExpvarHandler(ctx)
-		} else {
-
-			fmt.Println(string(ctx.Host()))
-
-			// file server
-			if nil != instance.fsHandler {
-				instance.fsHandler(ctx)
-			}
-		}
-	}
+func (instance *HttpServer) onServerError(c *fiber.Ctx, err error) {
+	c.SendString(err.Error())
+	c.SendStatus(500)
 }
 
-func (instance *HttpServer) stat(ctx *fasthttp.RequestCtx) {
-	if instance.Config.StatEnabled {
-		// Increment the number of fsHandler calls.
-		fsCalls.Add(1)
-
-		status := ctx.Response.StatusCode()
-		switch status {
-		case fasthttp.StatusOK:
-			fsOKResponses.Add(1)
-			fsResponseBodyBytes.Add(int64(ctx.Response.Header.ContentLength()))
-		case fasthttp.StatusNotModified:
-			fsNotModifiedResponses.Add(1)
-		case fasthttp.StatusNotFound:
-			fsNotFoundResponses.Add(1)
-		default:
-			fsOtherResponses.Add(1)
-		}
+func (instance *HttpServer) onLimitReached(c *fiber.Ctx) {
+	// request limit reached
+	if nil != instance.CallbackLimitReached {
+		instance.CallbackLimitReached(c)
 	}
 }
 
@@ -251,51 +265,146 @@ func (instance *HttpServer) stat(ctx *fasthttp.RequestCtx) {
 //	s t a t i c
 //----------------------------------------------------------------------------------------------------------------------
 
-// GenerateCert generates certificate and private key based on the given host.
-func GenerateCert(host string) ([]byte, []byte, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, nil, err
+func initCORS(app *fiber.Fiber, corsCfg *HttpServerConfigCORS) {
+	if nil != corsCfg && corsCfg.Enabled {
+		config := cors.Config{}
+		if corsCfg.MaxAge > 0 {
+			config.MaxAge = corsCfg.MaxAge
+		}
+		if corsCfg.AllowCredentials {
+			config.AllowCredentials = true
+		}
+		if len(corsCfg.AllowMethods) > 0 {
+			config.AllowMethods = corsCfg.AllowMethods
+		}
+		if len(corsCfg.AllowOrigins) > 0 {
+			config.AllowOrigins = corsCfg.AllowOrigins
+		}
+		if len(corsCfg.ExposeHeaders) > 0 {
+			config.ExposeHeaders = corsCfg.ExposeHeaders
+		}
+		app.Use(cors.New(config))
 	}
+}
 
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	if err != nil {
-		return nil, nil, err
+func initCompression(app *fiber.Fiber, cfg *HttpServerConfigCompression) {
+	if nil != cfg && cfg.Enabled {
+		config := compression.Config{}
+		config.Level = cfg.Level
+
+		app.Use(compression.New(config))
 	}
+}
 
-	cert := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			Organization: []string{"I have your data"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		SignatureAlgorithm:    x509.SHA256WithRSA,
-		DNSNames:              []string{host},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
+func initLimiter(app *fiber.Fiber, cfg *HttpServerConfigLimiter, handler func(ctx *fiber.Ctx)) {
+	if nil != cfg && cfg.Enabled {
+		config := limiter.Config{}
+		if cfg.Timeout > 0 {
+			config.Timeout = cfg.Timeout
+		}
+		if cfg.Max > 0 {
+			config.Max = cfg.Max
+		}
+		if len(cfg.Message) > 0 {
+			config.Message = cfg.Message
+		}
+		if cfg.StatusCode > 0 {
+			config.StatusCode = cfg.StatusCode
+		}
+
+		config.Handler = handler
+
+		app.Use(limiter.New(config))
 	}
+}
 
-	certBytes, err := x509.CreateCertificate(
-		rand.Reader, cert, cert, &priv.PublicKey, priv,
-	)
+func initRoute(app *fiber.Fiber, route *HttpServerConfigRoute, parent *fiber.Group) {
+	for k, i := range route.data {
+		initRouteItem(app, k, i, parent)
+	}
+}
 
-	p := pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: x509.MarshalPKCS1PrivateKey(priv),
-		},
-	)
+func initGroup(app *fiber.Fiber, group *HttpServerConfigGroup, parent *fiber.Group) {
+	var g *fiber.Group
+	if nil == parent {
+		g = app.Group(group.Path, group.Handlers...)
+	} else {
+		g = parent.Group(group.Path, group.Handlers...)
+	}
+	if nil != g && len(group.Children) > 0 {
+		for _, c := range group.Children {
+			if cc, b := c.(*HttpServerConfigGroup); b {
+				// children is a group
+				initGroup(app, cc, g)
+			} else if cc, b := c.(*HttpServerConfigRoute); b {
+				// children is route
+				initRoute(app, cc, g)
+			}
+		}
+	}
+}
 
-	b := pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: certBytes,
-		},
-	)
-
-	return b, p, err
+func initRouteItem(app *fiber.Fiber, key string, item interface{}, parent *fiber.Group) {
+	method := lygo_strings.SplitAndGetAt(key, "_", 0)
+	switch method {
+	case "GROUP":
+		v := item.(*HttpServerConfigGroup)
+		initGroup(app, v, parent)
+	case "ALL":
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.All(v.Path, v.Handlers...)
+		} else {
+			parent.All(v.Path, v.Handlers...)
+		}
+	case fiber.MethodGet:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Get(v.Path, v.Handlers...)
+		} else {
+			parent.Get(v.Path, v.Handlers...)
+		}
+	case fiber.MethodPost:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Post(v.Path, v.Handlers...)
+		} else {
+			parent.Post(v.Path, v.Handlers...)
+		}
+	case fiber.MethodOptions:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Options(v.Path, v.Handlers...)
+		} else {
+			parent.Options(v.Path, v.Handlers...)
+		}
+	case fiber.MethodPut:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Put(v.Path, v.Handlers...)
+		} else {
+			parent.Put(v.Path, v.Handlers...)
+		}
+	case fiber.MethodHead:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Head(v.Path, v.Handlers...)
+		} else {
+			parent.Head(v.Path, v.Handlers...)
+		}
+	case fiber.MethodPatch:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Patch(v.Path, v.Handlers...)
+		} else {
+			parent.Patch(v.Path, v.Handlers...)
+		}
+	case fiber.MethodDelete:
+		v := item.(*HttpServerConfigRouteItem)
+		if nil == parent {
+			app.Delete(v.Path, v.Handlers...)
+		} else {
+			parent.Delete(v.Path, v.Handlers...)
+		}
+	}
 }

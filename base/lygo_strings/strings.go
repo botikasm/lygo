@@ -86,6 +86,14 @@ func SplitTrimSpace(s string, seps string) []string {
 	return SplitTrim(s, seps, " ")
 }
 
+func SplitAndGetAt(s string, seps string, index int) string {
+	tokens := Split(s, seps)
+	if len(tokens) > index {
+		return tokens[index]
+	}
+	return ""
+}
+
 // get a substring
 // @param s string The string
 // @param start int Start index

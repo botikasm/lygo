@@ -1,0 +1,24 @@
+{
+  "addr": ":80",
+  "addr_tls": ":443",
+  "ssl_cert": "./cert/ssl-cert.pem",
+  "ssl_key": "./cert/ssl-cert.key",
+  "static": [
+    {
+      "enabled": false,
+      "prefix": "/",
+      "root": "./www",
+      "index": "",
+      "compress": true
+    }
+  ],
+  "compression": {
+    "enabled": false,
+    "level": 0
+  },
+  "limiter": {
+    "enabled": false,
+    "timeout": 30,
+    "max": 10
+  }
+}

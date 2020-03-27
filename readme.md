@@ -15,7 +15,7 @@ To list current module and all his dependency use:
 
 To add LyGo as a dependency use:
 
-`go get github.com/botikasm/lygo`
+`go get -u github.com/botikasm/lygo`
 
 `go get github.com/botikasm/lygo@v0.9.23`
 

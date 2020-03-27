@@ -1,9 +1,9 @@
 # HTTP
 FastHTTP wrapper
 
-## Dependencies
+## Client Dependencies
 Depends on 
 Library: [FastHttp](https://github.com/valyala/fasthttp)
 
 ### Install
-`dep ensure -add github.com/valyala/fasthttp`
+`go get -u github.com/valyala/fasthttp`
