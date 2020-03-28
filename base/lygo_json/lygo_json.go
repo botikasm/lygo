@@ -17,6 +17,18 @@ func Stringify(entity interface{}) string {
 	return ""
 }
 
+func Read(input interface{}, entity interface{}) (err error) {
+	if s, b := input.(string); b {
+		err = json.Unmarshal([]byte(s), &entity)
+	} else if s, b := input.([]byte); b {
+		err = json.Unmarshal(s, &entity)
+	}
+	if nil != err {
+		return err
+	}
+	return nil
+}
+
 func ReadFromFile(fileName string, entity interface{}) error {
 	b, err := lygo_io.ReadBytesFromFile(fileName)
 	if nil != err {
