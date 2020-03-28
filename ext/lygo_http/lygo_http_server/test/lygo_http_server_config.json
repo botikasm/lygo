@@ -1,11 +1,27 @@
 {
-  "addr": ":80",
-  "addr_tls": ":443",
-  "ssl_cert": "./cert/ssl-cert.pem",
-  "ssl_key": "./cert/ssl-cert.key",
+  "hosts": [
+    {
+      "addr": ":80",
+      "tls": false,
+      "websocket": {
+        "enabled": true
+      }
+    },
+    {
+      "addr": ":443",
+      "tls": true,
+      "ssl_cert": "./cert/ssl-cert.pem",
+      "ssl_key": "./cert/ssl-cert.key",
+      "websocket": {
+        "enabled": true
+      }
+    }
+  ],
+  "enable_request_id": true,
+  "prefork": false,
   "static": [
     {
-      "enabled": false,
+      "enabled": true,
       "prefix": "/",
       "root": "./www",
       "index": "",

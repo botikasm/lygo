@@ -3,6 +3,7 @@ package lygo_http_server
 import (
 	"github.com/botikasm/lygo/base/lygo_crypto"
 	"github.com/gofiber/fiber"
+	"github.com/gofiber/websocket"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -22,6 +23,11 @@ type HttpServerConfigGroup struct {
 	Path     string
 	Handlers []func(ctx *fiber.Ctx)
 	Children []interface{}
+}
+
+type HttpServerConfigRouteWebsocket struct {
+	Path     string
+	Handler func(c *websocket.Conn)
 }
 
 //----------------------------------------------------------------------------------------------------------------------

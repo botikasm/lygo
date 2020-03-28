@@ -10,16 +10,14 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type HttpServerConfig struct {
-	// HOST
-	Address    string `json:"addr"`
-	AddressTLS string `json:"addr_tls"`
-
-	// TLS
-	SslCert string `json:"ssl_cert"`
-	SslKey  string `json:"ssl_key"`
+	// HOSTS
+	Hosts []*HttpServerConfigHost `json:"hosts"`
 
 	// SETTINGS
-	// Enables use of theSO_REUSEPORTsocket option. This will spawn multiple Go processes listening on the same port. learn more about socket sharding
+	// Request ID adds an identifier to the request using the X-Request-ID header ( uuid.New().String() )
+	EnableRequestId bool `json:"enable_request_id"` //
+	// Enables use of the SO_REUSEPORT socket option. This will spawn multiple Go processes listening on the same port. learn more about socket sharding
+	// https://www.nginx.com/blog/socket-sharding-nginx-release-1-9-1/
 	Prefork bool `json:"prefork"` // default: false
 	// Enables the Server HTTP header with the given value.
 	ServerHeader string `json:"server_header"` // default: ""
@@ -50,6 +48,33 @@ type HttpServerConfig struct {
 	// Limiter
 	Limiter *HttpServerConfigLimiter `json:"limiter"`
 }
+
+type HttpServerConfigHost struct {
+	Address   string                         `json:"addr"`
+	TLS       bool                           `json:"tls"`
+	Websocket *HttpServerConfigHostWebsocket `json:"websocket"`
+	// TLS
+	SslCert string `json:"ssl_cert"`
+	SslKey  string `json:"ssl_key"`
+}
+
+type HttpServerConfigHostWebsocket struct {
+	Enabled bool `json:"enabled"`
+	// Specifies the duration for the handshake to complete.
+	HandshakeTimeout time.Duration `json:"handshake_timeout"` // default: 0 milliseconds
+	// specifies the server's supported protocols in order of preference. If this field is not nil, then the Upgrade
+	// method negotiates a subprotocol by selecting the first match in this list with a protocol requested by the client.
+	Subprotocols []string `json:"subprotocols"` // default: nil
+	// Origins is a string slice of origins that are acceptable, by default all origins are allowed.
+	Origins []string `json:"origins"` // default: []string{"*"}
+	// ReadBufferSize specify I/O buffer sizes in bytes.
+	ReadBufferSize int `json:"read_buffer_size"` // default: 1024
+	// WriteBufferSize specify I/O buffer sizes in bytes.
+	WriteBufferSize int `json:"write_buffer_size"` // default: 1024
+	// EnableCompression specify if the server should attempt to negotiate per message compression (RFC 7692)
+	EnableCompression bool `json:"enable_compression"` // default:false
+}
+
 type HttpServerConfigStatic struct {
 	Enabled   bool   `json:"enabled"`
 	Prefix    string `json:"prefix"`

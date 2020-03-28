@@ -9,7 +9,8 @@ import (
 	"github.com/gofiber/fiber"
 	"github.com/gofiber/limiter"
 	"github.com/gofiber/recover"
-	"log"
+	"github.com/gofiber/requestid"
+	"github.com/gofiber/websocket"
 	"sync"
 	"time"
 )
@@ -35,12 +36,13 @@ type HttpServer struct {
 	Route *HttpServerConfigRoute
 
 	//-- private --//
-	_http    *fiber.Fiber
-	_https   *fiber.Fiber
-	started  bool
-	stopped  bool
-	errors   []error
-	muxError sync.Mutex
+	_hosts     map[string]*fiber.Fiber
+	middleware []*HttpServerConfigRouteItem
+	websocket  []*HttpServerConfigRouteWebsocket
+	started    bool
+	stopped    bool
+	errors     []error
+	muxError   sync.Mutex
 }
 
 type HttpServerError struct {
@@ -60,8 +62,11 @@ func NewHttpServer(config *HttpServerConfig) *HttpServer {
 	instance := new(HttpServer)
 	instance.Config = config
 	instance.Route = NewHttpServerConfigRoute()
+	instance.middleware = make([]*HttpServerConfigRouteItem, 0)
+	instance.websocket = make([]*HttpServerConfigRouteWebsocket, 0)
 	instance.stopped = false
 	instance.started = false
+	instance._hosts = make(map[string]*fiber.Fiber)
 
 	return instance
 }
@@ -96,14 +101,57 @@ func (instance *HttpServer) Join() {
 
 func (instance *HttpServer) Stop() {
 	if !instance.stopped {
-		if nil != instance._http {
-			_ = instance._http.Shutdown()
-		}
-		if nil != instance._https {
-			_ = instance._https.Shutdown()
+		for _, host := range instance._hosts {
+			if nil != host {
+				_ = host.Shutdown()
+			}
 		}
 		instance.stopped = true
 		instance.started = false
+	}
+}
+
+func (instance *HttpServer) Middleware(args ...interface{}) {
+	item := new(HttpServerConfigRouteItem)
+	switch len(args) {
+	case 1:
+		if v, b := args[0].(func(ctx *fiber.Ctx)); b {
+			item.Path = ""
+			item.Handlers = append(item.Handlers, v)
+		}
+	case 2:
+		if path, b := args[0].(string); b {
+			if f, b := args[1].(func(ctx *fiber.Ctx)); b {
+				item.Path = path
+				item.Handlers = append(item.Handlers, f)
+			}
+		}
+	}
+
+	if len(item.Handlers) > 0 {
+		instance.middleware = append(instance.middleware, item)
+	}
+}
+
+func (instance *HttpServer) Websocket(args ...interface{}) {
+	item := new(HttpServerConfigRouteWebsocket)
+	switch len(args) {
+	case 1:
+		if v, b := args[0].(func(ctx *websocket.Conn)); b {
+			item.Path = "/ws"
+			item.Handler = v
+		}
+	case 2:
+		if path, b := args[0].(string); b {
+			if f, b := args[1].(func(ctx *websocket.Conn)); b {
+				item.Path = path
+				item.Handler = f
+			}
+		}
+	}
+
+	if nil != item.Handler {
+		instance.websocket = append(instance.websocket, item)
 	}
 }
 
@@ -111,28 +159,52 @@ func (instance *HttpServer) Stop() {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *HttpServer) http() *fiber.Fiber {
-	if nil == instance._http {
-		instance._http = fiber.New()
-		instance.configure(instance._http, instance.Config)
+func (instance *HttpServer) serve() {
+	// configure
+	config := instance.Config
+
+	for _, host := range config.Hosts {
+		key := host.Address
+		if _, ok := instance._hosts[key]; !ok {
+			app := fiber.New()
+			instance.configure(app, host, config)
+			instance._hosts[key] = app
+			go instance.listen(host, app)
+		}
 	}
-	return instance._http
 }
 
-func (instance *HttpServer) https() *fiber.Fiber {
-	if nil == instance._https {
-		instance._https = fiber.New()
-		instance.configure(instance._https, instance.Config)
+func (instance *HttpServer) listen(host *HttpServerConfigHost, app *fiber.Fiber) {
+	var tlsConfig *tls.Config
+	if host.TLS && len(host.SslKey) > 0 && len(host.SslCert) > 0 {
+		cer, err := tls.LoadX509KeyPair(host.SslCert, host.SslKey)
+		if err != nil {
+			instance.doError("Error loading Certificates", err, nil)
+		}
+		tlsConfig = &tls.Config{Certificates: []tls.Certificate{cer}}
 	}
-	return instance._https
+
+	if nil == tlsConfig {
+		if err := app.Listen(host.Address); err != nil {
+			instance.doError(lygo_strings.Format("Error Opening channel: '%s'", host.Address), err, nil)
+		}
+	} else {
+		if err := app.Listen(host.Address, tlsConfig); err != nil {
+			instance.doError(lygo_strings.Format("Error Opening TLS channel: '%s'", host.Address), err, nil)
+		}
+	}
 }
 
-func (instance *HttpServer) configure(app *fiber.Fiber, config *HttpServerConfig) {
+func (instance *HttpServer) configure(app *fiber.Fiber, host *HttpServerConfigHost, config *HttpServerConfig) {
 	if nil != app {
 		cfg := recover.Config{
 			Handler: instance.onServerError,
 		}
 		app.Use(recover.New(cfg))
+
+		if config.EnableRequestId {
+			app.Use(requestid.New())
+		}
 
 		app.Settings.ServerHeader = config.ServerHeader
 		app.Settings.Prefork = config.Prefork
@@ -161,10 +233,18 @@ func (instance *HttpServer) configure(app *fiber.Fiber, config *HttpServerConfig
 		// limiter
 		initLimiter(app, instance.Config.Limiter, instance.onLimitReached)
 
+		// Middleware
+		if len(instance.middleware) > 0 {
+			initMiddleware(app, instance.middleware)
+		}
+
 		// Route
 		if nil != instance.Route {
 			initRoute(app, instance.Route, nil)
 		}
+
+		// websocket
+		initSocket(app, host, instance.websocket)
 
 		// Static
 		if len(config.Static) > 0 {
@@ -189,42 +269,6 @@ func (instance *HttpServer) initConfig() {
 			if len(static.Index) == 0 {
 				static.Index = "index.html"
 			}
-		}
-	}
-}
-
-func (instance *HttpServer) serve() {
-	// configure
-	config := instance.Config
-
-	if len(config.Address) > 0 {
-		// http
-		go instance.listenAndServe(config.Address)
-	}
-	if len(config.AddressTLS) > 0 {
-		// https
-		go instance.listenAndServeTLS(config.AddressTLS, config.SslCert, config.SslKey)
-	}
-}
-
-func (instance *HttpServer) listenAndServe(addr string) {
-	if err := instance.http().Listen(addr); err != nil {
-		instance.doError(lygo_strings.Format("Error Opening channel: '%s'", addr), err, nil)
-	}
-}
-
-func (instance *HttpServer) listenAndServeTLS(addr string, certFile string, keyFile string) {
-	if len(certFile) > 0 && len(keyFile) > 0 {
-
-		cer, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		config := &tls.Config{Certificates: []tls.Certificate{cer}}
-
-		// use files
-		if err := instance.https().Listen(addr, config); err != nil {
-			instance.doError(lygo_strings.Format("Error Opening TLS channel: '%s'", addr), err, nil)
 		}
 	}
 }
@@ -264,6 +308,38 @@ func (instance *HttpServer) onLimitReached(c *fiber.Ctx) {
 //----------------------------------------------------------------------------------------------------------------------
 //	s t a t i c
 //----------------------------------------------------------------------------------------------------------------------
+
+func initSocket(app *fiber.Fiber, item *HttpServerConfigHost, routes []*HttpServerConfigRouteWebsocket) {
+	if nil != item.Websocket && item.Websocket.Enabled {
+		settings := item.Websocket
+		config := websocket.Config{}
+		config.EnableCompression = settings.EnableCompression
+		if settings.HandshakeTimeout > 0 {
+			config.HandshakeTimeout = settings.HandshakeTimeout * time.Millisecond
+		}
+		if len(settings.Origins) > 0 {
+			config.Origins = settings.Origins
+		} else {
+			config.Origins = []string{"*"}
+		}
+		if len(settings.Subprotocols) > 0 {
+			config.Subprotocols = settings.Subprotocols
+		}
+		if settings.ReadBufferSize > 0 {
+			config.ReadBufferSize = settings.ReadBufferSize
+		}
+		if settings.WriteBufferSize > 0 {
+			config.WriteBufferSize = settings.WriteBufferSize
+		}
+
+		// open websocket handlers
+		for _, route:=range routes{
+			if len(route.Path)>0{
+				app.Get(route.Path, websocket.New(route.Handler, config))
+			}
+		}
+	}
+}
 
 func initCORS(app *fiber.Fiber, corsCfg *HttpServerConfigCORS) {
 	if nil != corsCfg && corsCfg.Enabled {
@@ -315,6 +391,17 @@ func initLimiter(app *fiber.Fiber, cfg *HttpServerConfigLimiter, handler func(ct
 		config.Handler = handler
 
 		app.Use(limiter.New(config))
+	}
+}
+
+func initMiddleware(app *fiber.Fiber, items []*HttpServerConfigRouteItem) {
+	for _, item := range items {
+		path := item.Path
+		if len(path) == 0 {
+			app.Use(item.Handlers[0])
+		} else {
+			app.Use(path, item.Handlers[0])
+		}
 	}
 }
 

@@ -12,14 +12,18 @@ require (
 	github.com/gofiber/compression v0.0.2
 	github.com/gofiber/cors v0.0.2
 	github.com/gofiber/fiber v1.8.42
-	github.com/gofiber/limiter v0.0.2 // indirect
+	github.com/gofiber/limiter v0.0.2
 	github.com/gofiber/recover v0.0.2
+	github.com/gofiber/requestid v0.0.2
+	github.com/gofiber/websocket v0.1.1
+	github.com/google/uuid v1.1.1
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/otiai10/gosseract v2.2.1+incompatible
 	github.com/otiai10/mint v1.3.0 // indirect
+	github.com/savsgio/gotils v0.0.0-20200319105752-a9cc718f6a3f // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

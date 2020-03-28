@@ -5,6 +5,8 @@ import (
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/gofiber/fiber"
+	"github.com/gofiber/websocket"
+	"os"
 	"testing"
 )
 
@@ -20,15 +22,54 @@ func TestBasic(t *testing.T) {
 	server.CallbackError = onError
 
 	server.Route.Get("/get", func(ctx *fiber.Ctx) {
-		ctx.SendBytes([]byte("THIS IS GET API"))
+		ctx.Send(fmt.Sprintf("Hi, I'm worker #%v", os.Getpid()))
+		// ctx.SendBytes([]byte("THIS IS GET API"))
 	})
 
 	g := server.Route.Group("/api", func(ctx *fiber.Ctx) {
-		ctx.SendBytes([]byte("THIS IS GROUP API"))
+		ctx.SendBytes([]byte("THIS IS GROUP API\n"))
 		ctx.Next()
 	})
 	g.Get("/v1", func(ctx *fiber.Ctx) {
-		ctx.SendBytes([]byte("THIS IS GROUP API v1"))
+		ctx.Write("/v1\n")
+		ctx.Write("THIS IS v1")
+	})
+
+	server.Middleware("/", func(ctx *fiber.Ctx){
+		fmt.Println("First middleware")
+		ctx.Append("middleware", "First middleware")
+		ctx.Next()
+	})
+
+	server.Middleware(func(ctx *fiber.Ctx){
+		fmt.Println("Second middleware")
+		ctx.Append("middleware", "Second middleware")
+		ctx.Next()
+	})
+
+	server.Middleware("/api", func(ctx *fiber.Ctx){
+		fmt.Println("API middleware")
+		ctx.Write("API middleware")
+		ctx.Append("middleware", "API middleware")
+		ctx.Next()
+	})
+
+	server.Websocket("/", func(c *websocket.Conn) {
+		fmt.Println(c.Locals("Hello")) // "World"
+		// Websocket stuff
+		for {
+			mt, msg, err := c.ReadMessage()
+			if err != nil {
+				fmt.Println("read:", err)
+				break
+			}
+			fmt.Printf("recv: %s", msg)
+			err = c.WriteMessage(mt, msg)
+			if err != nil {
+				fmt.Println("write:", err)
+				break
+			}
+		}
 	})
 
 	// start server

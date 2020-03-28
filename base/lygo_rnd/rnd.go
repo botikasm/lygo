@@ -3,12 +3,17 @@ package lygo_rnd
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
+
+func Guid() string {
+	return uuid.New().String()
+}
 
 func Uuid() (string, error) {
 	uuid := ""
@@ -25,8 +30,8 @@ func Uuid() (string, error) {
 
 func UuidTimestamp() (string, error) {
 	uuid, err := Uuid()
-	if nil==err{
-		return time.Now().Format("20060102T150405")  + "-" + uuid, nil
+	if nil == err {
+		return time.Now().Format("20060102T150405") + "-" + uuid, nil
 	}
 	return "", err
 }
