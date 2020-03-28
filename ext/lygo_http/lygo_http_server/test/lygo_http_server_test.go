@@ -55,18 +55,18 @@ func TestBasic(t *testing.T) {
 	})
 
 	server.Websocket("/", func(c *websocket.Conn) {
-		fmt.Println(c.Locals("Hello")) // "World"
+		fmt.Println("LOCALS", c.Locals("Hello")) // "World"
 		// Websocket stuff
 		for {
 			mt, msg, err := c.ReadMessage()
 			if err != nil {
-				fmt.Println("read:", err)
+				fmt.Println("ERROR read:", err)
 				break
 			}
 			fmt.Printf("recv: %s", msg)
 			err = c.WriteMessage(mt, msg)
 			if err != nil {
-				fmt.Println("write:", err)
+				fmt.Println("ERROR write:", err)
 				break
 			}
 		}
