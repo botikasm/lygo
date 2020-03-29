@@ -2,7 +2,7 @@ package lygo_license_client
 
 import (
 	"errors"
-	"github.com/botikasm/lygo/base/lygo_event_ticker"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/botikasm/lygo/ext/lygo_license/lygo_license_config"
@@ -37,7 +37,7 @@ type LicenseTicker struct {
 	CountWarnings int
 
 	//-- private --//
-	ticker  *lygo_event_ticker.EventTicker
+	ticker  *lygo_events.EventTicker
 	client  *LicenseClient
 	stopped bool
 }
@@ -121,7 +121,7 @@ func (instance *LicenseTicker) Start() {
 
 		if !instance.stopped {
 			// enable ticker
-			instance.ticker = lygo_event_ticker.NewEventTicker(instance.Interval, instance.onTick)
+			instance.ticker = lygo_events.NewEventTicker(instance.Interval, instance.onTick)
 		}
 	}
 }
@@ -144,7 +144,7 @@ func (instance *LicenseTicker) Join() {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *LicenseTicker) onTick(ticker *lygo_event_ticker.EventTicker) {
+func (instance *LicenseTicker) onTick(ticker *lygo_events.EventTicker) {
 	instance.doCheck()
 }
 

@@ -1,4 +1,4 @@
-package lygo_event_ticker
+package lygo_events
 
 import "time"
 
@@ -11,6 +11,7 @@ type EventTicker struct {
 	timer    *time.Ticker
 	timeout  time.Duration
 	stopChan chan bool
+	paused   bool
 	callback EventTickerCallback
 }
 
@@ -61,6 +62,18 @@ func (w *EventTicker) Stop() {
 	}
 }
 
+func (w *EventTicker) Pause() {
+	if nil != w.timer && !w.paused {
+		w.paused = true
+	}
+}
+
+func (w *EventTicker) Resume() {
+	if nil != w.timer && w.paused {
+		w.paused = false
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
@@ -73,7 +86,7 @@ func (w *EventTicker) loop() {
 				return
 			case <-w.timer.C:
 				// event
-				if nil != w.callback {
+				if nil != w.callback && !w.paused {
 					w.callback(w)
 				}
 			}
