@@ -207,7 +207,7 @@ func ListFiles(root string, filter string) ([]string, error) {
 }
 
 func TmpFileName(extension string) string {
-	uuid, _ := lygo_rnd.Uuid()
+	uuid := lygo_rnd.Uuid()
 	if len(uuid) == 0 {
 		uuid = "temp_file"
 	}

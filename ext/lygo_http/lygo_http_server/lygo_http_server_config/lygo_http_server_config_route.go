@@ -1,4 +1,4 @@
-package lygo_http_server
+package lygo_http_server_config
 
 import (
 	"github.com/botikasm/lygo/base/lygo_crypto"
@@ -11,7 +11,7 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type HttpServerConfigRoute struct {
-	data map[string]interface{}
+	Data map[string]interface{}
 }
 
 type HttpServerConfigRouteItem struct {
@@ -36,12 +36,12 @@ type HttpServerConfigRouteWebsocket struct {
 
 func NewHttpServerConfigRoute() *HttpServerConfigRoute {
 	instance := new(HttpServerConfigRoute)
-	instance.data = make(map[string]interface{})
+	instance.Data = make(map[string]interface{})
 	return instance
 }
 
 func (instance *HttpServerConfigRoute) Group(path string, handlers ...func(ctx *fiber.Ctx)) *HttpServerConfigGroup {
-	m := instance.data
+	m := instance.Data
 	g := &HttpServerConfigGroup{
 		Path:     path,
 		Handlers: handlers,
@@ -52,7 +52,7 @@ func (instance *HttpServerConfigRoute) Group(path string, handlers ...func(ctx *
 }
 
 func (instance *HttpServerConfigRoute) All(path string, handlers ...func(ctx *fiber.Ctx)) {
-	m := instance.data
+	m := instance.Data
 	m[buildKey("ALL", path)] = &HttpServerConfigRouteItem{
 		Path:     path,
 		Handlers: handlers,
@@ -60,7 +60,7 @@ func (instance *HttpServerConfigRoute) All(path string, handlers ...func(ctx *fi
 }
 
 func (instance *HttpServerConfigRoute) Get(path string, handlers ...func(ctx *fiber.Ctx)) {
-	m := instance.data
+	m := instance.Data
 	m[buildKey("GET", path)] = &HttpServerConfigRouteItem{
 		Path:     path,
 		Handlers: handlers,
@@ -68,7 +68,7 @@ func (instance *HttpServerConfigRoute) Get(path string, handlers ...func(ctx *fi
 }
 
 func (instance *HttpServerConfigRoute) Post(path string, handlers ...func(ctx *fiber.Ctx)) {
-	m := instance.data
+	m := instance.Data
 	m[buildKey("POST", path)] = &HttpServerConfigRouteItem{
 		Path:     path,
 		Handlers: handlers,
@@ -81,7 +81,7 @@ func (instance *HttpServerConfigRoute) Post(path string, handlers ...func(ctx *f
 
 func (instance *HttpServerConfigGroup) All(path string, handlers ...func(ctx *fiber.Ctx)) {
 	g := NewHttpServerConfigRoute()
-	m := g.data
+	m := g.Data
 	m[buildKey("ALL", path)] = &HttpServerConfigRouteItem{
 		Path:     path,
 		Handlers: handlers,
@@ -91,7 +91,7 @@ func (instance *HttpServerConfigGroup) All(path string, handlers ...func(ctx *fi
 
 func (instance *HttpServerConfigGroup) Get(path string, handlers ...func(ctx *fiber.Ctx)) {
 	g := NewHttpServerConfigRoute()
-	m := g.data
+	m := g.Data
 	m[buildKey("GET", path)] = &HttpServerConfigRouteItem{
 		Path:     path,
 		Handlers: handlers,

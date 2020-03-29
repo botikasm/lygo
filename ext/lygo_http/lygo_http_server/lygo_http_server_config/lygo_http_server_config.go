@@ -1,4 +1,4 @@
-package lygo_http_server
+package lygo_http_server_config
 
 import (
 	"encoding/json"

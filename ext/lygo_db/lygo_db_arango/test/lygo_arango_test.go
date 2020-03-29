@@ -90,7 +90,7 @@ func TestSimple(t *testing.T) {
 
 	// bew entity that test upsert used for insert
 	newEntity := map[string]interface{}{
-		"_key":    lygo_rnd.UuidDefault(""),
+		"_key":    lygo_rnd.Uuid(),
 		"name":    "I'm new",
 		"surname": lygo_strings.Format("%s", time.Now()),
 	}

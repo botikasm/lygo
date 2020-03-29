@@ -47,7 +47,7 @@ func NewScannerDocument(root string, pages []string, params ScannerConfig) *Scan
 }
 
 func NewScannerDocumentEmpty(root string, pages []string, params ScannerConfig) *ScannerDocument {
-	id := lygo_rnd.UuidDefault("scannerdoc_default")
+	id := lygo_rnd.Uuid()
 	workspace := filepath.Join(root, "documents", id)
 
 	response := &ScannerDocument{

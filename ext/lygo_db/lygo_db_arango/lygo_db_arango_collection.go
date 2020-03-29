@@ -315,7 +315,7 @@ func (instance *ArangoCollection) addKey(meta *driver.DocumentMeta, doc map[stri
 func (instance *ArangoCollection) ensureKey(doc map[string]interface{}) bool {
 	key := lygo_reflect.GetString(doc, KeyFieldName)
 	if len(key) == 0 {
-		key = lygo_rnd.UuidDefault("")
+		key = lygo_rnd.Uuid()
 		if len(key) > 0 {
 			lygo_reflect.Set(doc, KeyFieldName, key)
 			return true

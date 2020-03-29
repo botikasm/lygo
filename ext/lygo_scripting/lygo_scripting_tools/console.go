@@ -125,7 +125,7 @@ func (tool *ScriptingToolConsole) getFilename() string {
 	if len(*params.Root) > 0 {
 		root = *params.Root
 	}
-	filename := "./scrip_log_" + lygo_rnd.UuidDefault("") + ".log"
+	filename := "./scrip_log_" + lygo_rnd.Uuid() + ".log"
 	if len(*params.Name) > 0 {
 		filename = *params.Name + ".log"
 	}

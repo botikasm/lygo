@@ -36,7 +36,7 @@ type ScannerTask struct {
 //----------------------------------------------------------------------------------------------------------------------
 
 func NewScanner() *Scanner {
-	id := lygo_rnd.UuidTimestampDefault("scanner_default")
+	id := lygo_rnd.UuidTimestamp("scanner_default")
 	workspace := filepath.Join(lygo_paths.GetTempRoot(), id)
 
 	response := &Scanner{

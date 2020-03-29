@@ -34,7 +34,7 @@ func NewLicense(uid string) *License {
 	if len(uid) > 0 {
 		instance.Uid = uid
 	} else {
-		instance.Uid = lygo_rnd.UuidDefault("")
+		instance.Uid = lygo_rnd.Uuid()
 	}
 	instance.Enabled = true
 	instance.DurationDays = 1
