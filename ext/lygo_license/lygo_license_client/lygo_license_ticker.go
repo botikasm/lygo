@@ -31,10 +31,13 @@ type LicenseTicker struct {
 	ExpiredLicenseHook LicenseTickerCallback
 	// [run always] notify action on license
 	RequestLicenseHook LicenseTickerCallback
+	ErrorLicenseHook   LicenseTickerCallback
 
 	Email *LicenseTickerEmail
 	// count number of time the license expire email was sent
 	CountWarnings int
+	// internal utility data storage
+	Data map[string]interface{}
 
 	//-- private --//
 	ticker  *lygo_events.EventTicker
@@ -47,6 +50,12 @@ type LicenseTickerContext struct {
 	License *lygo_license_struct.License
 	Ticker  *LicenseTicker
 }
+
+func NewLicenseTickerContext() *LicenseTickerContext {
+	instance := new(LicenseTickerContext)
+	return instance
+}
+
 func (instance *LicenseTickerContext) HasError404() bool {
 	if nil != instance.Error {
 		return strings.Index(instance.Error.Error(), "404") > -1
@@ -84,7 +93,6 @@ func (instance *LicenseTickerEmail) CanSend() bool {
 	return hours > 12
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
@@ -105,6 +113,8 @@ func NewLicenseTicker(config *lygo_license_config.LicenseConfig) *LicenseTicker 
 	instance.Interval = 1 * time.Hour
 	instance.LicensePath = ""
 
+	instance.Data = make(map[string]interface{})
+
 	return instance
 }
 
@@ -117,7 +127,9 @@ func (instance *LicenseTicker) Start() {
 		instance.stopped = false
 
 		// initial check
+		instance.ticker.Lock()
 		instance.doCheck()
+		instance.ticker.Unlock()
 
 		if !instance.stopped {
 			// enable ticker
@@ -149,19 +161,16 @@ func (instance *LicenseTicker) onTick(ticker *lygo_events.EventTicker) {
 }
 
 func (instance *LicenseTicker) doCheck() {
-	context := new(LicenseTickerContext)
+	context := NewLicenseTickerContext()
 	context.Ticker = instance
 
 	// request the license
 	if nil != instance.client {
 		license, err := instance.client.RequestLicense(instance.LicensePath)
 		context.License = license
-		context.Error = err
-		if nil != err {
-
-		}
+		instance.setError(context, err)
 	} else {
-		context.Error = errors.New("system: License client is null")
+		instance.setError(context, errors.New("system: License client is null"))
 	}
 
 	if nil != context.License {
@@ -180,6 +189,15 @@ func (instance *LicenseTicker) doCheck() {
 		// call hook only if context has no errors
 		if nil != instance.RequestLicenseHook {
 			instance.RequestLicenseHook(context)
+		}
+	}
+}
+
+func (instance *LicenseTicker) setError(ctx *LicenseTickerContext, err error) {
+	ctx.Error = err
+	if nil != err {
+		if nil != instance.ErrorLicenseHook {
+			instance.ErrorLicenseHook(ctx)
 		}
 	}
 }

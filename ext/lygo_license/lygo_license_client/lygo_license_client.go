@@ -8,6 +8,7 @@ import (
 	"github.com/botikasm/lygo/ext/lygo_license"
 	"github.com/botikasm/lygo/ext/lygo_license/lygo_license_config"
 	"github.com/botikasm/lygo/ext/lygo_license/lygo_license_struct"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,8 @@ import (
 
 type LicenseClient struct {
 	Config *lygo_license_config.LicenseConfig
+
+	mux sync.Mutex
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -45,6 +48,9 @@ func (instance *LicenseClient) GetUrl() string {
 }
 
 func (instance *LicenseClient) RequestLicense(path string) (license *lygo_license_struct.License, err error) {
+	instance.mux.Lock()
+	defer instance.mux.Unlock()
+
 	license = new(lygo_license_struct.License)
 	bytes := make([]byte, 0)
 	if len(path) > 0 {

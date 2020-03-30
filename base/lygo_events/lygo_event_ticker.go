@@ -17,6 +17,7 @@ type EventTicker struct {
 	paused   bool
 	callback EventTickerCallback
 	mux sync.Mutex
+	locked bool
 }
 
 type EventTickerCallback func(*EventTicker)
@@ -78,6 +79,20 @@ func (w *EventTicker) Resume() {
 	}
 }
 
+func (w *EventTicker) Lock() {
+	if nil!=w && !w.locked {
+		w.locked = true
+		w.mux.Lock()
+	}
+}
+
+func (w *EventTicker) Unlock() {
+	if nil!=w && w.locked {
+		w.mux.Unlock()
+		w.locked = false
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
@@ -93,9 +108,9 @@ func (w *EventTicker) loop() {
 					// event
 					if nil != w.callback && !w.paused {
 						// thread safe call
-						w.mux.Lock()
+						w.Lock()
 						w.callback(w)
-						w.mux.Unlock()
+						w.Unlock()
 					}
 				}
 			} else{

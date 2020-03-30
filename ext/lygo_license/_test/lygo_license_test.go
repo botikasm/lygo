@@ -1,4 +1,4 @@
-package lygo_license
+package _test
 
 import (
 	"fmt"
@@ -85,6 +85,8 @@ func TestLicenseTicker(t *testing.T) {
 		config.Parse(text)
 		ticker := lygo_license_client.NewLicenseTicker(config)
 		ticker.RequestLicenseHook = onLicense
+		ticker.ErrorLicenseHook = onError
+		ticker.Interval = 3 * time.Second
 		ticker.Email.Enabled = true
 		ticker.Email.From = "Botika<info@botika.ai>"
 		ticker.Email.Subject = "%s, License Expired"
@@ -92,33 +94,50 @@ func TestLicenseTicker(t *testing.T) {
 		ticker.Email.SmtpHost = "ssl0.ovh.net"
 		ticker.Email.SmtpPort = 587
 		ticker.Email.SmtpUser = "support@botika.it"
-		ticker.Email.SmtpPassword = "Fa1%"
+		ticker.Email.SmtpPassword = "xxxxxxxx"
 		ticker.Email.Target = []string{}
 
 		ticker.Start()
 
 		// lock and wait manual stop
-		ticker.Join()
+		// ticker.Join()
+		time.Sleep(20 * time.Second)
 	} else {
 		t.Error(err)
+		t.Fail()
 	}
 
 	// wait 4 seconds to allow email send
 	fmt.Println("EXITING....")
-	time.Sleep(15 * time.Second)
+	time.Sleep(1 * time.Second)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
+func onError(ctx *lygo_license_client.LicenseTickerContext) {
+	fmt.Println("onError: ", ctx.Error.Error())
+}
 func onLicense(ctx *lygo_license_client.LicenseTickerContext) {
-	if nil!=ctx.License{
+	if nil != ctx.Error {
+		fmt.Println("onLicense: ", ctx.Error.Error())
+	}
+	if nil != ctx.License {
 		license := ctx.License
 		fmt.Println("NEW EXPIRE DATE: ", license.GetExpireDate())
 		fmt.Println("EXPIRED: ", !license.IsValid())
 		fmt.Println("EXPIRED DAYS: ", license.RemainingDays())
 
-		ctx.Ticker.Stop()
+		if _, b := ctx.Ticker.Data["count"]; !b {
+			ctx.Ticker.Data["count"] = 0
+		} else {
+			v := ctx.Ticker.Data["count"].(int)
+			if v == 3 {
+				ctx.Ticker.Stop()
+				fmt.Println("STOP TICKER", v)
+			}
+			ctx.Ticker.Data["count"] = v + 1
+		}
 	}
 }
