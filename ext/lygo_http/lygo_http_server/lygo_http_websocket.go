@@ -111,6 +111,14 @@ func (instance *HttpWebsocketConn) Join() {
 	instance.run()
 }
 
+func (instance *HttpWebsocketConn) IsAlive() bool {
+	if nil != instance {
+		return instance.alive
+	}
+
+	return false
+}
+
 func (instance *HttpWebsocketConn) Shutdown(err error) error {
 	if nil != instance && nil != instance.conn {
 		instance.unregister()
@@ -184,6 +192,13 @@ func (instance *HttpWebsocketConn) ClientsUUIDs() []string {
 		poolMux.Unlock()
 	}
 	return response
+}
+
+func (instance *HttpWebsocketConn) ClientByUUID(uuid string) *HttpWebsocketConn {
+	if nil != instance && nil != instance.pool {
+		return instance.clientGet(uuid)
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------
