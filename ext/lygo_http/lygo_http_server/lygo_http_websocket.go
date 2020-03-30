@@ -61,8 +61,9 @@ type HttpWebsocketConn struct {
 }
 
 type HttpWebsocketEventPayload struct {
-	Message *Message
-	Error   error
+	Websocket *HttpWebsocketConn // sender
+	Message   *Message
+	Error     error
 }
 
 type Message struct {
@@ -163,7 +164,6 @@ func (instance *HttpWebsocketConn) SendDataTo(uuid string, data []byte) {
 	}
 }
 
-
 func (instance *HttpWebsocketConn) ClientsCount() int {
 	count := 0
 	if nil != instance && nil != instance.pool {
@@ -174,6 +174,18 @@ func (instance *HttpWebsocketConn) ClientsCount() int {
 	return count
 }
 
+func (instance *HttpWebsocketConn) ClientsUUIDs() []string {
+	response := make([]string, 0)
+	if nil != instance && nil != instance.pool {
+		poolMux.Lock()
+		for _, w := range instance.pool {
+			response = append(response, w.UUID)
+		}
+		poolMux.Unlock()
+	}
+	return response
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	e v e n t s
 //----------------------------------------------------------------------------------------------------------------------
@@ -182,7 +194,8 @@ func (instance *HttpWebsocketConn) OnDisconnect(callback func(payload *HttpWebso
 	if nil != instance && nil != instance.events && nil != callback {
 		instance.events.On(OnDisconnectEvent, func(event *lygo_events.Event) {
 			callback(&HttpWebsocketEventPayload{
-				Error: event.ArgumentAsError(0),
+				Websocket: instance,
+				Error:     event.ArgumentAsError(0),
 			})
 		})
 	}
@@ -193,6 +206,7 @@ func (instance *HttpWebsocketConn) OnMessage(callback func(payload *HttpWebsocke
 		instance.events.On(OnMessageEvent, func(event *lygo_events.Event) {
 			// fmt.Println("OnMessage", event)
 			callback(&HttpWebsocketEventPayload{
+				Websocket: instance,
 				Message: &Message{
 					Type: event.ArgumentAsInt(0),
 					Data: event.ArgumentAsBytes(1),
