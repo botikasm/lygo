@@ -3,10 +3,8 @@ package lygo_http_server
 import (
 	"errors"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_config"
-	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_service"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_types"
 	"github.com/gofiber/fiber"
-	"github.com/gofiber/websocket"
 	"sync"
 	"time"
 )
@@ -32,9 +30,9 @@ type HttpServer struct {
 	Route *lygo_http_server_config.HttpServerConfigRoute
 
 	//-- private --//
-	services   map[string]*lygo_http_server_service.HttpServerService
+	services   map[string]*HttpServerService
 	middleware []*lygo_http_server_config.HttpServerConfigRouteItem
-	websocket  []*lygo_http_server_config.HttpServerConfigRouteWebsocket
+	websocket  []*HttpServerConfigRouteWebsocket
 	started    bool
 	stopped    bool
 	errors     []error
@@ -51,10 +49,10 @@ func NewHttpServer(config *lygo_http_server_config.HttpServerConfig) *HttpServer
 	instance.Config = config
 	instance.Route = lygo_http_server_config.NewHttpServerConfigRoute()
 	instance.middleware = make([]*lygo_http_server_config.HttpServerConfigRouteItem, 0)
-	instance.websocket = make([]*lygo_http_server_config.HttpServerConfigRouteWebsocket, 0)
+	instance.websocket = make([]*HttpServerConfigRouteWebsocket, 0)
 	instance.stopped = false
 	instance.started = false
-	instance.services = make(map[string]*lygo_http_server_service.HttpServerService)
+	instance.services = make(map[string]*HttpServerService)
 
 	return instance
 }
@@ -122,16 +120,16 @@ func (instance *HttpServer) Middleware(args ...interface{}) {
 }
 
 func (instance *HttpServer) Websocket(args ...interface{}) {
-	item := new(lygo_http_server_config.HttpServerConfigRouteWebsocket)
+	item := new(HttpServerConfigRouteWebsocket)
 	switch len(args) {
 	case 1:
-		if v, b := args[0].(func(ctx *websocket.Conn)); b {
+		if v, b := args[0].(func(ctx *HttpWebsocketConn)); b {
 			item.Path = "/ws"
 			item.Handler = v
 		}
 	case 2:
 		if path, b := args[0].(string); b {
-			if f, b := args[1].(func(ctx *websocket.Conn)); b {
+			if f, b := args[1].(func(ctx *HttpWebsocketConn)); b {
 				item.Path = path
 				item.Handler = f
 			}
@@ -155,7 +153,7 @@ func (instance *HttpServer) serve() {
 		key := host.Address
 		if _, ok := instance.services[key]; !ok {
 			// creates service and add to internal pool
-			service := lygo_http_server_service.NewServerService(key,
+			service := NewServerService(key,
 				instance.Config, host, instance.Route, instance.middleware, instance.websocket,
 				instance.onEndpointError, instance.CallbackLimitReached)
 			service.Open()

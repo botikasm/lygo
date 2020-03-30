@@ -1,4 +1,4 @@
-package lygo_http_server_service
+package lygo_http_server
 
 import (
 	"crypto/tls"
@@ -28,7 +28,7 @@ type HttpServerService struct {
 	configHost       *lygo_http_server_config.HttpServerConfigHost
 	configRoute      *lygo_http_server_config.HttpServerConfigRoute
 	configMiddleware []*lygo_http_server_config.HttpServerConfigRouteItem
-	configWebsocket  []*lygo_http_server_config.HttpServerConfigRouteWebsocket
+	configWebsocket  []*HttpServerConfigRouteWebsocket
 
 	callbackError        lygo_http_server_types.CallbackError
 	callbackLimitReached lygo_http_server_types.CallbackLimitReached
@@ -43,7 +43,7 @@ func NewServerService(key string,
 	host *lygo_http_server_config.HttpServerConfigHost,
 	route *lygo_http_server_config.HttpServerConfigRoute,
 	middleware []*lygo_http_server_config.HttpServerConfigRouteItem,
-	websocket []*lygo_http_server_config.HttpServerConfigRouteWebsocket,
+	websocket []*HttpServerConfigRouteWebsocket,
 	callbackError lygo_http_server_types.CallbackError,
 	callbackLimitReached lygo_http_server_types.CallbackLimitReached) *HttpServerService {
 

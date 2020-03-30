@@ -1,6 +1,9 @@
 package lygo_events
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 //----------------------------------------------------------------------------------------------------------------------
 //	t y p e s
@@ -13,6 +16,7 @@ type EventTicker struct {
 	stopChan chan bool
 	paused   bool
 	callback EventTickerCallback
+	mux sync.Mutex
 }
 
 type EventTickerCallback func(*EventTicker)
@@ -79,17 +83,25 @@ func (w *EventTicker) Resume() {
 //----------------------------------------------------------------------------------------------------------------------
 
 func (w *EventTicker) loop() {
-	for {
-		if nil != w.timer {
-			select {
-			case <-w.stopChan:
-				return
-			case <-w.timer.C:
-				// event
-				if nil != w.callback && !w.paused {
-					w.callback(w)
+	if nil!=w{
+		for {
+			if nil!=w && nil != w.timer {
+				select {
+				case <-w.stopChan:
+					return
+				case <-w.timer.C:
+					// event
+					if nil != w.callback && !w.paused {
+						// thread safe call
+						w.mux.Lock()
+						w.callback(w)
+						w.mux.Unlock()
+					}
 				}
+			} else{
+				return
 			}
 		}
 	}
+
 }

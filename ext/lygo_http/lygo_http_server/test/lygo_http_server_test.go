@@ -1,13 +1,13 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_config"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_types"
 	"github.com/gofiber/fiber"
-	"github.com/gofiber/websocket"
 	"os"
 	"testing"
 )
@@ -61,23 +61,7 @@ func TestBasic(t *testing.T) {
 		ctx.Next()
 	})
 
-	server.Websocket("/", func(c *websocket.Conn) {
-		fmt.Println("LOCALS", c.Locals("Hello")) // "World"
-		// Websocket stuff
-		for {
-			mt, msg, err := c.ReadMessage()
-			if err != nil {
-				fmt.Println("ERROR read:", err)
-				break
-			}
-			fmt.Printf("recv: %s", msg)
-			err = c.WriteMessage(mt, msg)
-			if err != nil {
-				fmt.Println("ERROR write:", err)
-				break
-			}
-		}
-	})
+	server.Websocket("/", onSocket)
 
 	server.Middleware("/yoda", func(ctx *fiber.Ctx){
 		// NOT FOUND
@@ -109,4 +93,47 @@ func config() *lygo_http_server_config.HttpServerConfig {
 
 func onError(errCtx *lygo_http_server_types.HttpServerError) {
 	fmt.Println(errCtx.Message, errCtx.Error.Error())
+}
+
+func onSocketOld(ws *lygo_http_server.HttpWebsocketConn){
+	// Websocket stuff
+	c := ws.Conn()
+	fmt.Println("LOCALS", c.Locals("Hello")) // "World"
+	for {
+		mt, msg, err := c.ReadMessage()
+		if err != nil {
+			fmt.Println("ERROR read:", err)
+			break
+		}
+		fmt.Printf("recv: %s", msg)
+		err = c.WriteMessage(mt, msg)
+		if err != nil {
+			fmt.Println("ERROR write:", err)
+			break
+		}
+	}
+}
+
+func onSocket(ws *lygo_http_server.HttpWebsocketConn){
+	fmt.Println("SOCKET CLIENT", ws.UUID)
+	fmt.Println("COUNT CLIENTS", ws.ClientsCount())
+
+	ws.OnDisconnect(func(payload *lygo_http_server.HttpWebsocketEventPayload) {
+		fmt.Println("DISCONNECTED", ws.UUID, payload.Error)
+		fmt.Println("COUNT CLIENTS", ws.ClientsCount())
+	})
+	ws.OnMessage(func(payload *lygo_http_server.HttpWebsocketEventPayload) {
+		fmt.Println("MESSAGE", ws.UUID, string(payload.Message.Data))
+	})
+
+	// send message to myself
+	message := map[string]interface{}{
+		"message":"HELLO",
+		"sender":"Sample test",
+	}
+	data, err := json.Marshal(message)
+	if nil!=err{
+		panic(err)
+	}
+	ws.SendData(data)
 }

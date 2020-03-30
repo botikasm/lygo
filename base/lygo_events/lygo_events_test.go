@@ -49,6 +49,9 @@ func TestEvents(t *testing.T) {
 	emitter.Emit("my-event", "SHOULD NOT BE HANDLED FROM LISTENER 3")
 	emitter.Off("my-event")
 	emitter.Emit("my-event", "SHOULD NOT HANDLE THIS")
+
+	emitter.Clear()
+	emitter.Emit("my-event", "SHOULD NOT HANDLE THIS")
 }
 
 //----------------------------------------------------------------------------------------------------------------------

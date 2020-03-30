@@ -1,4 +1,4 @@
-package lygo_http_server_service
+package lygo_http_server
 
 import (
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_config"
@@ -16,7 +16,8 @@ type HttpWebsocket struct {
 	//-- private --//
 	app           *fiber.Fiber
 	configService *lygo_http_server_config.HttpServerConfigHost
-	configRoutes  []*lygo_http_server_config.HttpServerConfigRouteWebsocket
+	configRoutes  []*HttpServerConfigRouteWebsocket
+	pool          map[string]*HttpWebsocketConn
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -25,12 +26,14 @@ type HttpWebsocket struct {
 
 func NewHttpWebsocket(app *fiber.Fiber,
 	configService *lygo_http_server_config.HttpServerConfigHost,
-	configRoutes []*lygo_http_server_config.HttpServerConfigRouteWebsocket) *HttpWebsocket {
+	configRoutes []*HttpServerConfigRouteWebsocket) *HttpWebsocket {
 
 	instance := new(HttpWebsocket)
 	instance.app = app
 	instance.configService = configService
 	instance.configRoutes = configRoutes
+
+	instance.pool = make(map[string]*HttpWebsocketConn)
 
 	return instance
 }
@@ -63,9 +66,24 @@ func (instance *HttpWebsocket) Init() {
 
 		// open websocket handlers
 		for _, route := range routes {
-			if len(route.Path) > 0 {
-				app.Get(route.Path, websocket.New(route.Handler, config))
+			if len(route.Path) > 0 && nil != route.Handler {
+				app.Get(route.Path, websocket.New(func(c *websocket.Conn) {
+					if nil != route.Handler {
+						ws := newConnection(c, instance.pool)
+						route.Handler(ws)
+						ws.Join() // lock waiting close
+					}
+				}, config))
 			}
 		}
 	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p r i v a t e
+//----------------------------------------------------------------------------------------------------------------------
+
+func newConnection(c *websocket.Conn, pool map[string]*HttpWebsocketConn) *HttpWebsocketConn {
+	ws := NewHttpWebsocketConn(c, pool)
+	return ws
 }
