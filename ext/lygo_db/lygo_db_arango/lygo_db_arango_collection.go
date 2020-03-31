@@ -201,7 +201,7 @@ func (instance *ArangoCollection) Read(key string) (map[string]interface{}, driv
 	if nil != instance && instance.IsReady() {
 		ctx := context.Background()
 		var doc map[string]interface{}
-		meta, err := instance.collection.ReadDocument(ctx, key, doc)
+		meta, err := instance.collection.ReadDocument(ctx, key, &doc)
 		if nil != err {
 			return nil, driver.DocumentMeta{}, err
 		}

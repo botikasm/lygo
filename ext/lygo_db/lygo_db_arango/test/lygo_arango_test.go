@@ -74,6 +74,7 @@ func TestSimple(t *testing.T) {
 	fmt.Println("DOC", doc)
 
 	entity = map[string]interface{}{
+		"_key":    lygo_rnd.Uuid(),
 		"name":    "Marco",
 		"surname": lygo_strings.Format("%s", time.Now()),
 	}
@@ -84,10 +85,6 @@ func TestSimple(t *testing.T) {
 	fmt.Println("META", meta)
 	fmt.Println("DOC", doc)
 
-	if true {
-		return
-	}
-
 	// bew entity that test upsert used for insert
 	newEntity := map[string]interface{}{
 		"_key":    lygo_rnd.Uuid(),
@@ -95,6 +92,14 @@ func TestSimple(t *testing.T) {
 		"surname": lygo_strings.Format("%s", time.Now()),
 	}
 	doc, meta, err = coll.Upsert(newEntity)
+	if nil != err {
+		t.Error(err)
+		t.Fail()
+	}
+	fmt.Println("META", meta)
+	fmt.Println("DOC", doc)
+
+	doc, meta, err = coll.Read(lygo_conv.ToString(doc["_key"]))
 	if nil != err {
 		t.Error(err)
 		t.Fail()
@@ -238,7 +243,6 @@ func TestImport(t *testing.T) {
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
-
 
 func gotDocument(meta driver.DocumentMeta, doc interface{}, err error) bool {
 	fmt.Print("META: ", meta, " ENTITY: ", lygo_conv.ToString(doc), " ERR: ", err)
