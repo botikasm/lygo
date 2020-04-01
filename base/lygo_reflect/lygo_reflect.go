@@ -66,6 +66,14 @@ func GetInt(object interface{}, name string) int {
 	return 0
 }
 
+func GetBool(object interface{}, name string) bool {
+	v := Get(object, name)
+	if nil != v {
+		return lygo_conv.ToBool(v)
+	}
+	return false
+}
+
 func GetArray(object interface{}, name string) []interface{} {
 	v := Get(object, name)
 	if nil != v {
