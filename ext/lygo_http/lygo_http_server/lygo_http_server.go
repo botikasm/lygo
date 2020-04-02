@@ -6,7 +6,6 @@ import (
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_types"
 	"github.com/gofiber/fiber"
 	"sync"
-	"time"
 )
 
 var (
@@ -37,6 +36,7 @@ type HttpServer struct {
 	stopped    bool
 	errors     []error
 	muxError   sync.Mutex
+	stopChan   chan bool
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -53,6 +53,7 @@ func NewHttpServer(config *lygo_http_server_config.HttpServerConfig) *HttpServer
 	instance.stopped = false
 	instance.started = false
 	instance.services = make(map[string]*HttpServerService)
+	instance.stopChan = make(chan bool, 1)
 
 	return instance
 }
@@ -79,9 +80,7 @@ func (instance *HttpServer) Start() error {
 
 func (instance *HttpServer) Join() {
 	if !instance.stopped {
-		for !instance.stopped {
-			time.Sleep(10 * time.Second)
-		}
+		<-instance.stopChan
 	}
 }
 
@@ -94,6 +93,7 @@ func (instance *HttpServer) Stop() {
 		}
 		instance.stopped = true
 		instance.started = false
+		instance.stopChan <- true
 	}
 }
 
