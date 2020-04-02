@@ -143,12 +143,12 @@ func (instance *ArangoDatabase) Collection(name string, createIfNotExists bool) 
 	return nil, ErrDatabaseDoesNotExists
 }
 
-func (instance *ArangoDatabase) Query(query string, bindVars map[string]interface{}, callback QueryCallback) (*ArangoCollection, error) {
+func (instance *ArangoDatabase) Query(query string, bindVars map[string]interface{}, callback QueryCallback) error {
 	if nil != instance && instance.IsReady() {
 		ctx := context.Background()
 		cursor, err := instance.database.Query(ctx, query, bindVars)
 		if nil != err {
-			return nil, err
+			return err
 		}
 
 		defer cursor.Close()
@@ -167,7 +167,21 @@ func (instance *ArangoDatabase) Query(query string, bindVars map[string]interfac
 			}
 		}
 	}
-	return nil, ErrDatabaseDoesNotExists
+	return ErrDatabaseDoesNotExists
+}
+
+func (instance *ArangoDatabase) Count(query string, bindVars map[string]interface{}) (int64, error) {
+	if nil != instance && instance.IsReady() {
+		ctx := context.Background()
+		cursor, err := instance.database.Query(ctx, query, bindVars)
+		if nil != err {
+			return 0, err
+		}
+
+		defer cursor.Close()
+		return cursor.Count(), nil
+	}
+	return 0, ErrDatabaseDoesNotExists
 }
 
 //----------------------------------------------------------------------------------------------------------------------
