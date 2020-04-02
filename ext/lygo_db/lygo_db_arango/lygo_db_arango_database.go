@@ -166,6 +166,8 @@ func (instance *ArangoDatabase) Query(query string, bindVars map[string]interfac
 				}
 			}
 		}
+		// no error
+		return nil
 	}
 	return ErrDatabaseDoesNotExists
 }
