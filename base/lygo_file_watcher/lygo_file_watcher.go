@@ -256,6 +256,7 @@ func (w *FileWatcher) Start(d time.Duration) error {
 	// Unblock w.Wait().
 	w.wg.Done()
 
+	// start main loop
 	for {
 		// done lets the inner polling cycle loop know when the
 		// current cycle's method has finished executing.
@@ -280,6 +281,7 @@ func (w *FileWatcher) Start(d time.Duration) error {
 		// numEvents holds the number of events for the current cycle.
 		numEvents := 0
 
+	// inner loop
 	inner:
 		for {
 			select {
