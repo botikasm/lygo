@@ -62,14 +62,19 @@ func ToString(val interface{}) string {
 
 	// array
 	if aa, tt := IsArray(val); aa {
-		response := []string{}
-		// array := make([]interface{}, tt.Len())
-		for i := 0; i < tt.Len(); i++ {
-			v := tt.Index(i).Interface()
-			s := ToString(v)
-			response = append(response, s)
+		// byte array??
+		if ba, b :=val.([]byte);b{
+			return string(ba)
+		} else {
+			response := []string{}
+			// array := make([]interface{}, tt.Len())
+			for i := 0; i < tt.Len(); i++ {
+				v := tt.Index(i).Interface()
+				s := ToString(v)
+				response = append(response, s)
+			}
+			return "[" + strings.Join(response, ",") + "]"
 		}
-		return "[" + strings.Join(response, ",") + "]"
 	}
 
 	// map
@@ -82,6 +87,17 @@ func ToString(val interface{}) string {
 
 	// undefined value
 	return fmt.Sprintf("%v", val)
+}
+
+func Int8ToStr(arr []int8) string {
+	b := make([]byte, 0, len(arr))
+	for _, v := range arr {
+		if v == 0x00 {
+			break
+		}
+		b = append(b, byte(v))
+	}
+	return string(b)
 }
 
 func ToInt(val interface{}) int {
@@ -188,6 +204,7 @@ func ToBool(val interface{}) bool {
 	}
 	return false
 }
+
 
 func ToMap(val interface{}) map[string]interface{} {
 	if b, _ := IsString(val); b {

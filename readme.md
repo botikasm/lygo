@@ -15,8 +15,13 @@ To list current module and all his dependency use:
 
 To add LyGo as a dependency use:
 
+Base lygo libs without dependencies:
 `go get -u github.com/botikasm/lygo`
 
+lygo with all dependencies: 
+`go get -u github.com/botikasm/lygo/...`
+
+lygo specific version: 
 `go get github.com/botikasm/lygo@v0.9.35`
 
 To remove unused dependency use:

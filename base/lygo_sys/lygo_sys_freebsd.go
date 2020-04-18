@@ -1,4 +1,4 @@
-// +build darwin
+// +build freebsd
 
 package lygo_sys
 
@@ -15,9 +15,9 @@ import (
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func shutdown(adminPsw string) error {
+func shutdown(adminPsw string) error{
 	// echo <password> | sudo -S shutdown -h now
-	if err := exec.Command("/bin/sh", "-c", "echo "+adminPsw+" | sudo -S shutdown -h now").Run(); err != nil {
+	if err := exec.Command("/bin/sh", "-c", "echo " +  adminPsw + " | sudo -S shutdown -h now").Run(); err != nil {
 		return err
 	}
 	return nil
@@ -32,13 +32,13 @@ func getInfo() *InfoObject {
 	osStr := strings.Replace(out, "\n", "", -1)
 	osStr = strings.Replace(osStr, "\r\n", "", -1)
 	osInfo := strings.Split(osStr, " ")
-	gio := &InfoObject{Kernel: osInfo[0], Core: osInfo[1], Platform: osInfo[2], OS: osInfo[0], GoOS: runtime.GOOS, CPUs: runtime.NumCPU()}
+	gio := &InfoObject{Kernel: osInfo[0], Core: osInfo[1], Platform: runtime.GOARCH, OS: osInfo[2], GoOS: runtime.GOOS, CPUs: runtime.NumCPU()}
 	gio.Hostname, _ = os.Hostname()
 	return gio
 }
 
 func _getInfo() string {
-	cmd := exec.Command("uname", "-srm")
+	cmd := exec.Command("uname", "-sri")
 	cmd.Stdin = strings.NewReader("some input")
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -46,7 +46,7 @@ func _getInfo() string {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		// fmt.Println("getInfo:", err)
+		//fmt.Println("getInfo:", err)
 	}
 	return out.String()
 }
