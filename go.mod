@@ -25,10 +25,8 @@ require (
 	github.com/otiai10/mint v1.3.0 // indirect
 	github.com/savsgio/gotils v0.0.0-20200413113635-8c468ce75cca // indirect
 	github.com/sirupsen/logrus v1.5.0
-	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.10.0
+	github.com/valyala/fasthttp v1.11.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect

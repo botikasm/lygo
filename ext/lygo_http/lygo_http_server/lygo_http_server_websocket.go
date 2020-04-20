@@ -14,7 +14,7 @@ import (
 type HttpWebsocket struct {
 
 	//-- private --//
-	app           *fiber.Fiber
+	app           *fiber.App
 	configService *lygo_http_server_config.HttpServerConfigHost
 	configRoutes  []*HttpServerConfigRouteWebsocket
 	pool          map[string]*HttpWebsocketConn
@@ -24,7 +24,7 @@ type HttpWebsocket struct {
 //	HttpWebsocket
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewHttpWebsocket(app *fiber.Fiber,
+func NewHttpWebsocket(app *fiber.App,
 	configService *lygo_http_server_config.HttpServerConfigHost,
 	configRoutes []*HttpServerConfigRouteWebsocket) *HttpWebsocket {
 

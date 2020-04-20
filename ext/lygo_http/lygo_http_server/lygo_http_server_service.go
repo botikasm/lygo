@@ -22,7 +22,7 @@ type HttpServerService struct {
 	Key string
 
 	//-- private --//
-	app *fiber.Fiber
+	app *fiber.App
 
 	config           *lygo_http_server_config.HttpServerConfig
 	configHost       *lygo_http_server_config.HttpServerConfigHost
@@ -204,7 +204,7 @@ func (instance *HttpServerService) doError(message string, err error, ctx *fiber
 //	S T A T I C
 //----------------------------------------------------------------------------------------------------------------------
 
-func initCORS(app *fiber.Fiber, corsCfg *lygo_http_server_config.HttpServerConfigCORS) {
+func initCORS(app *fiber.App, corsCfg *lygo_http_server_config.HttpServerConfigCORS) {
 	if nil != corsCfg && corsCfg.Enabled {
 		config := cors.Config{}
 		if corsCfg.MaxAge > 0 {
@@ -226,7 +226,7 @@ func initCORS(app *fiber.Fiber, corsCfg *lygo_http_server_config.HttpServerConfi
 	}
 }
 
-func initCompression(app *fiber.Fiber, cfg *lygo_http_server_config.HttpServerConfigCompression) {
+func initCompression(app *fiber.App, cfg *lygo_http_server_config.HttpServerConfigCompression) {
 	if nil != cfg && cfg.Enabled {
 		config := compression.Config{}
 		config.Level = cfg.Level
@@ -235,7 +235,7 @@ func initCompression(app *fiber.Fiber, cfg *lygo_http_server_config.HttpServerCo
 	}
 }
 
-func initLimiter(app *fiber.Fiber, cfg *lygo_http_server_config.HttpServerConfigLimiter, handler func(ctx *fiber.Ctx)) {
+func initLimiter(app *fiber.App, cfg *lygo_http_server_config.HttpServerConfigLimiter, handler func(ctx *fiber.Ctx)) {
 	if nil != cfg && cfg.Enabled {
 		config := limiter.Config{}
 		if cfg.Timeout > 0 {
@@ -257,7 +257,7 @@ func initLimiter(app *fiber.Fiber, cfg *lygo_http_server_config.HttpServerConfig
 	}
 }
 
-func initMiddleware(app *fiber.Fiber, items []*lygo_http_server_config.HttpServerConfigRouteItem) {
+func initMiddleware(app *fiber.App, items []*lygo_http_server_config.HttpServerConfigRouteItem) {
 	for _, item := range items {
 		path := item.Path
 		if len(path) == 0 {
@@ -268,13 +268,13 @@ func initMiddleware(app *fiber.Fiber, items []*lygo_http_server_config.HttpServe
 	}
 }
 
-func initRoute(app *fiber.Fiber, route *lygo_http_server_config.HttpServerConfigRoute, parent *fiber.Group) {
+func initRoute(app *fiber.App, route *lygo_http_server_config.HttpServerConfigRoute, parent *fiber.Group) {
 	for k, i := range route.Data {
 		initRouteItem(app, k, i, parent)
 	}
 }
 
-func initGroup(app *fiber.Fiber, group *lygo_http_server_config.HttpServerConfigGroup, parent *fiber.Group) {
+func initGroup(app *fiber.App, group *lygo_http_server_config.HttpServerConfigGroup, parent *fiber.Group) {
 	var g *fiber.Group
 	if nil == parent {
 		g = app.Group(group.Path, group.Handlers...)
@@ -294,7 +294,7 @@ func initGroup(app *fiber.Fiber, group *lygo_http_server_config.HttpServerConfig
 	}
 }
 
-func initRouteItem(app *fiber.Fiber, key string, item interface{}, parent *fiber.Group) {
+func initRouteItem(app *fiber.App, key string, item interface{}, parent *fiber.Group) {
 	method := lygo_strings.SplitAndGetAt(key, "_", 0)
 	switch method {
 	case "GROUP":
