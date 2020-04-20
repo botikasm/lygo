@@ -2,10 +2,14 @@ package lygo_scanner
 
 import (
 	"errors"
+	"fmt"
+	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/base/lygo_stopwatch"
+	"github.com/botikasm/lygo/base/lygo_strings"
+	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/libs/lygo_images"
 	"os"
 	"path/filepath"
@@ -35,9 +39,17 @@ type ScannerTask struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewScanner() *Scanner {
+func NewScanner(optWorkspace ...interface{}) *Scanner {
 	id := lygo_rnd.UuidTimestamp() // get new timestamped UUID
-	workspace := filepath.Join(lygo_paths.GetTempRoot(), id)
+
+	// init root
+	tmpRoot := lygo_paths.GetTempRoot()
+	if len(optWorkspace) == 1 {
+		if b, v := lygo_conv.IsString(optWorkspace[0]); b {
+			tmpRoot = v
+		}
+	}
+	workspace := filepath.Join(tmpRoot, id)
 
 	response := &Scanner{
 		Id:               id,
@@ -56,6 +68,15 @@ func NewScanner() *Scanner {
 //----------------------------------------------------------------------------------------------------------------------
 
 func (scanner *Scanner) SplitDocuments(fileName string, oneDocumentPerPage bool) ([][]string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// recovered from panic
+			msg := lygo_strings.Format("Scanner.SplitDocuments ERROR: %s", r)
+			lygo_logs.Error(msg)
+			fmt.Println("Scanner.SplitDocuments ERROR: ", msg)
+		}
+	}()
+
 	response := make([][]string, 0)
 
 	// copy original to workspace
@@ -97,6 +118,14 @@ func (scanner *Scanner) SplitDocuments(fileName string, oneDocumentPerPage bool)
 // This procedure test all documents with all configurations
 func (scanner *Scanner) ReadDocuments(fileName string, oneDocumentPerPage bool,
 	configArray *ScannerConfigArray) (*ScannerResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// recovered from panic
+			msg := lygo_strings.Format("Scanner.ReadDocuments ERROR: %s", r)
+			lygo_logs.Error(msg)
+			fmt.Println("Scanner.ReadDocuments ERROR: ", msg)
+		}
+	}()
 
 	stopwatch := lygo_stopwatch.New()
 	stopwatch.Start()
@@ -186,6 +215,14 @@ func (scanner *Scanner) ReadDocuments(fileName string, oneDocumentPerPage bool,
 // This is useful to detect which document best match with passed configuration
 func (scanner *Scanner) MatchDocuments(fileName string, oneDocumentPerPage bool,
 	config *ScannerConfig) (*ScannerResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// recovered from panic
+			msg := lygo_strings.Format("Scanner.MatchDocuments ERROR: %s", r)
+			lygo_logs.Error(msg)
+			fmt.Println("Scanner.MatchDocuments ERROR: ", msg)
+		}
+	}()
 
 	stopwatch := lygo_stopwatch.New()
 	stopwatch.Start()
