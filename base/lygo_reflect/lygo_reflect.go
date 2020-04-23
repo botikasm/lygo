@@ -42,6 +42,8 @@ func Compare(item1, item2 interface{}) int {
 	v1 := ValueOf(item1)
 	v2 := ValueOf(item2)
 	if v1.Kind() == v2.Kind() {
+
+		// native
 		switch v1.Kind() {
 		case reflect.Bool:
 			c1 := v1.Interface().(bool)

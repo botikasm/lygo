@@ -165,7 +165,7 @@ func IndexOf(item interface{}, array interface{}) int {
 	if s.Kind() == reflect.Slice {
 		for i := 0; i < s.Len(); i++ {
 			v := s.Index(i)
-			if v.IsValid() && v.Interface() == item {
+			if v.IsValid() && lygo_reflect.Equals(v.Interface(), item) {
 				return i
 			}
 		}
