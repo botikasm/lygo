@@ -24,6 +24,10 @@ type Event struct {
 	Arguments []interface{}
 }
 
+func (instance *Event) ArgumentsInterface() interface{} {
+	return interface{}(instance.Arguments)
+}
+
 func (instance *Event) Argument(index int) interface{} {
 	if len(instance.Arguments) > index {
 		return instance.Arguments[index]
