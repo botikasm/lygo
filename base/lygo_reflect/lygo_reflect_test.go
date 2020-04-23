@@ -52,3 +52,13 @@ func TestSimple(t *testing.T) {
 	}
 	fmt.Println("NAME", name)
 }
+
+func TestIsGreater(t *testing.T) {
+	a := 5
+	b := 4
+	r := IsGreater(a, b)
+	if !r {
+		t.Fail()
+		t.Errorf("Expected 'true', but got '%v'", r)
+	}
+}

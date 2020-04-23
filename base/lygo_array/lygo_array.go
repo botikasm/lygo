@@ -1,7 +1,9 @@
 package lygo_array
 
 import (
+	"github.com/botikasm/lygo/base/lygo_reflect"
 	"math/rand"
+	"reflect"
 	"sort"
 )
 
@@ -10,13 +12,165 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 func Sort(array interface{}) {
-	if a, b := array.([]string); b {
+	if a, b := array.([]interface{}); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]string); b {
 		sort.Strings(a)
-	} else if a, b := array.([]float64); b {
-		sort.Float64s(a)
+	} else if a, b := array.([]byte); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
 	} else if a, b := array.([]int); b {
 		sort.Ints(a)
+	} else if a, b := array.([]int8); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]int16); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]int32); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]int64); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uint); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uint8); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uint16); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uint32); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uint64); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]uintptr); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]float32); b {
+		sort.Slice(array, func(i, j int) bool {
+			return lygo_reflect.IsLower(a[i], a[j])
+		})
+	} else if a, b := array.([]float64); b {
+		sort.Float64s(a)
 	}
+}
+
+func SortDesc(array interface{}) {
+	Sort(array)
+	Reverse(array)
+}
+
+func Reverse(array interface{}) {
+	if a, b := array.([]interface{}); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]string); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]byte); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]int); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]int8); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]int16); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]int32); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]int64); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uint); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uint8); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uint16); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uint32); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uint64); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]uintptr); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]float32); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	} else if a, b := array.([]float64); b {
+		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
+			a[left], a[right] = a[right], a[left]
+		}
+	}
+}
+
+func AppendUnique(target interface{}, source interface{}) interface{} {
+	vt := lygo_reflect.ValueOf(target)
+	vs := lygo_reflect.ValueOf(source)
+	if vt.Kind() == reflect.Slice && vs.Kind() == reflect.Slice {
+		for i := 0; i < vs.Len(); i++ {
+			vsv := vs.Index(i)
+			if IndexOf(vsv.Interface(), target) == -1 {
+				vt = reflect.Append(vt, vsv)
+			}
+		}
+	}
+	return vt.Interface()
+}
+
+func IndexOf(item interface{}, array interface{}) int {
+	s := lygo_reflect.ValueOf(array)
+	if s.Kind() == reflect.Slice {
+		for i := 0; i < s.Len(); i++ {
+			v := s.Index(i)
+			if v.IsValid() && v.Interface() == item {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 // Copy a slice and return new slice with same items
@@ -209,74 +363,6 @@ func Group(groupSize int, array interface{}) interface{} {
 		return groups
 	}
 	return nil
-}
-
-func Reverse(array interface{}) {
-	if a, b := array.([]interface{}); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]string); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]byte); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]int); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]int8); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]int16); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]int32); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]int64); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uint); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uint8); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uint16); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uint32); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uint64); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]uintptr); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]float32); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	} else if a, b := array.([]float64); b {
-		for left, right := 0, len(a)-1; left < right; left, right = left+1, right-1 {
-			a[left], a[right] = a[right], a[left]
-		}
-	}
 }
 
 func Sub(array interface{}, start, end int) interface{} {

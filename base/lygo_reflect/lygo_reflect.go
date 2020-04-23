@@ -12,6 +12,182 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func ValueOf(item interface{}) reflect.Value {
+	v := reflect.ValueOf(item)
+	k := v.Kind()
+	switch k {
+	case reflect.Ptr:
+		return ValueOf(v.Elem().Interface())
+	}
+	return v
+}
+
+func InterfaceOf(item interface{}) interface{} {
+	v := ValueOf(item)
+	return v.Interface()
+}
+func Equals(item1, item2 interface{}) bool {
+	return Compare(item1, item2) == 0
+}
+
+func IsGreater(item1, item2 interface{}) bool {
+	return Compare(item1, item2) > 0
+}
+
+func IsLower(item1, item2 interface{}) bool {
+	return Compare(item1, item2) < 0
+}
+
+func Compare(item1, item2 interface{}) int {
+	v1 := ValueOf(item1)
+	v2 := ValueOf(item2)
+	if v1.Kind() == v2.Kind() {
+		switch v1.Kind() {
+		case reflect.Bool:
+			c1 := v1.Interface().(bool)
+			c2 := v2.Interface().(bool)
+			if c1 == c2 {
+				return 0
+			} else if c1 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Int:
+			c1 := v1.Interface().(int)
+			c2 := v2.Interface().(int)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Int8:
+			c1 := v1.Interface().(int8)
+			c2 := v2.Interface().(int8)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Int16:
+			c1 := v1.Interface().(int16)
+			c2 := v2.Interface().(int16)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Int32:
+			c1 := v1.Interface().(int32)
+			c2 := v2.Interface().(int32)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Int64:
+			c1 := v1.Interface().(int64)
+			c2 := v2.Interface().(int64)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Uint:
+			c1 := v1.Interface().(uint)
+			c2 := v2.Interface().(uint)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Uint8:
+			c1 := v1.Interface().(uint8)
+			c2 := v2.Interface().(uint8)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Uint16:
+			c1 := v1.Interface().(uint16)
+			c2 := v2.Interface().(uint16)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Uint32:
+			c1 := v1.Interface().(uint32)
+			c2 := v2.Interface().(uint32)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Uint64:
+			c1 := v1.Interface().(uint64)
+			c2 := v2.Interface().(uint64)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Float32:
+			c1 := v1.Interface().(float32)
+			c2 := v2.Interface().(float32)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.Float64:
+			c1 := v1.Interface().(float64)
+			c2 := v2.Interface().(float64)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		case reflect.String:
+			c1 := v1.Interface().(string)
+			c2 := v2.Interface().(string)
+			if c1 == c2 {
+				return 0
+			} else if c1 > c2 {
+				return 1
+			} else {
+				return -1
+			}
+		}
+	}
+	return -1
+}
+
 func Get(object interface{}, name string) interface{} {
 	if m, b := object.(map[string]interface{}); b {
 		if nil != m {
