@@ -3,6 +3,7 @@ package lygo_reflect
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"reflect"
 	"strings"
@@ -45,6 +46,21 @@ func Compare(item1, item2 interface{}) int {
 
 		// native
 		switch v1.Kind() {
+		case reflect.Struct, reflect.Map, reflect.Slice:
+			c1 := v1.Interface()
+			c2 := v2.Interface()
+			if reflect.DeepEqual(c1, c2) {
+				return 0
+			} else {
+				// string check
+				s1 := fmt.Sprintf("%v", c1)
+				s2 := fmt.Sprintf("%v", c2)
+				if s1 > s2 {
+					return 1
+				} else {
+					return -1
+				}
+			}
 		case reflect.Bool:
 			c1 := v1.Interface().(bool)
 			c2 := v2.Interface().(bool)
