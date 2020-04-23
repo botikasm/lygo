@@ -36,14 +36,19 @@ func TestTick(t *testing.T) {
 func TestEvents(t *testing.T) {
 	emitter := NewEmitter()
 	emitter.On("my-event", func(event *Event) {
-		fmt.Println("1)", event.Name, event.Arguments)
+		fmt.Println("listener 1:", event.Name, event.Arguments)
 	})
 	emitter.On("my-event", func(event *Event) {
-		fmt.Println("2)", event.Name, event.Arguments)
+		fmt.Println("listener 2:", event.Name, event.Arguments)
 	})
 	emitter.On("my-event", listener3)
 	emitter.Emit("no listener")
 	emitter.Emit("my-event", "arg1", 2, 3, "arg4")
+
+	// ASYNC
+	emitter.EmitAsync("my-event", "this", "is", "async", "event")
+
+	time.Sleep(1*time.Second)
 
 	emitter.Off("my-event", listener3)
 	emitter.Emit("my-event", "SHOULD NOT BE HANDLED FROM LISTENER 3")
@@ -52,6 +57,7 @@ func TestEvents(t *testing.T) {
 
 	emitter.Clear()
 	emitter.Emit("my-event", "SHOULD NOT HANDLE THIS")
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -59,7 +65,7 @@ func TestEvents(t *testing.T) {
 //----------------------------------------------------------------------------------------------------------------------
 
 func listener3(event *Event) {
-	fmt.Println("3)", event.Name, event.Arguments)
+	fmt.Println("listener 3:", event.Name, event.Arguments)
 }
 
 func callback(w *EventTicker) {

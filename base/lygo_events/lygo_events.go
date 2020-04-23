@@ -1,7 +1,9 @@
 package lygo_events
 
 import (
+	"fmt"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_strings"
 	"reflect"
 	"sync"
 	"time"
@@ -97,6 +99,7 @@ func (instance *Emitter) On(eventName string, callback func(event *Event)) {
 func (instance *Emitter) Off(eventName string, callback ...func(event *Event)) {
 	if nil != instance {
 		instance.mux.Lock()
+		defer instance.mux.Unlock()
 		if _, ok := instance.listeners[eventName]; ok {
 			if len(callback) == 0 {
 				instance.listeners[eventName] = make([]func(event *Event), 0)
@@ -118,21 +121,48 @@ func (instance *Emitter) Off(eventName string, callback ...func(event *Event)) {
 				instance.listeners[eventName] = handlers
 			}
 		}
-		instance.mux.Unlock()
 	}
 }
 
 func (instance *Emitter) Clear() {
 	if nil != instance {
 		instance.mux.Lock()
+		defer instance.mux.Unlock()
 		instance.listeners = make(map[string][]func(event *Event), 0)
-		instance.mux.Unlock()
 	}
 }
 
 func (instance *Emitter) Emit(eventName string, args ...interface{}) {
 	if nil != instance {
+		instance.emit(eventName, args...)
+	}
+}
+
+func (instance *Emitter) EmitAsync(eventName string, args ...interface{}) {
+	if nil != instance {
+		go instance.emit(eventName, args...)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p r i v a t e
+//----------------------------------------------------------------------------------------------------------------------
+
+func removeIndex(a []func(event *Event), index int) []func(event *Event) {
+	return append(a[:index], a[index+1:]...)
+}
+
+func (instance *Emitter) emit(eventName string, args ...interface{}) {
+	if nil != instance {
+		defer func() {
+			if r := recover(); r != nil {
+				// recovered from panic
+				message := lygo_strings.Format("Emit '%s' ERROR: %s", eventName, r)
+				fmt.Println(message)
+			}
+		}()
 		instance.mux.Lock()
+		defer instance.mux.Unlock()
 		for k, handlers := range instance.listeners {
 			if k == eventName {
 				for _, handler := range handlers {
@@ -145,14 +175,5 @@ func (instance *Emitter) Emit(eventName string, args ...interface{}) {
 				}
 			}
 		}
-		instance.mux.Unlock()
 	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-//	p r i v a t e
-//----------------------------------------------------------------------------------------------------------------------
-
-func removeIndex(a []func(event *Event), index int) []func(event *Event) {
-	return append(a[:index], a[index+1:]...)
 }
