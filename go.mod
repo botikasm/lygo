@@ -23,6 +23,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/otiai10/gosseract v2.2.1+incompatible
 	github.com/otiai10/mint v1.3.0 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/savsgio/gotils v0.0.0-20200413113635-8c468ce75cca // indirect
 	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.5.1
