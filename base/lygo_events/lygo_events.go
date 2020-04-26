@@ -88,11 +88,22 @@ func (instance *Emitter) Tick(timeout time.Duration, callback EventTickerCallbac
 	return et
 }
 
+func (instance *Emitter) Has(eventName string) bool {
+	if nil != instance {
+		instance.mux.Lock()
+		defer instance.mux.Unlock()
+		if _, b := instance.listeners[eventName]; b {
+			return len(instance.listeners[eventName]) > 0
+		}
+	}
+	return false
+}
+
 func (instance *Emitter) On(eventName string, callback func(event *Event)) {
 	if nil != instance {
 		instance.mux.Lock()
+		defer instance.mux.Unlock()
 		instance.listeners[eventName] = append(instance.listeners[eventName], callback)
-		instance.mux.Unlock()
 	}
 }
 

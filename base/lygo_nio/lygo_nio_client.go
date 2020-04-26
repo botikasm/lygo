@@ -19,6 +19,7 @@ type NioClient struct {
 	PublicKey string
 
 	//-- private --//
+	conn      net.Conn
 	host      string
 	port      int
 	mux       sync.Mutex
@@ -51,7 +52,11 @@ func (instance *NioClient) Open() error {
 
 func (instance *NioClient) Close() error {
 	if nil != instance {
-
+		if nil != instance.conn {
+			err := instance.conn.Close()
+			instance.conn = nil
+			return err
+		}
 	}
 	return nil
 }
@@ -82,8 +87,17 @@ func (instance *NioClient) test() error {
 }
 
 func (instance *NioClient) connect() (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%v:%v", instance.host, instance.port), instance.Timeout)
-	return conn, err
+	if nil != instance {
+		if nil == instance.conn {
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%v:%v", instance.host, instance.port), instance.Timeout)
+			if nil==err{
+				instance.conn = conn
+			}
+			return conn, err
+		}
+		return instance.conn, nil
+	}
+	return nil, nil
 }
 
 func (instance *NioClient) handshake() error {
@@ -102,9 +116,9 @@ func (instance *NioClient) send(message *NioMessage) (*NioMessage, error) {
 	if nil != instance {
 		conn, err := instance.connect()
 		if nil != err {
+			_ = instance.Close() // reset connection
 			return nil, err
 		}
-		defer conn.Close()
 
 		rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 		enc := gob.NewEncoder(rw)

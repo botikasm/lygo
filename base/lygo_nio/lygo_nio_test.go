@@ -14,6 +14,7 @@ func TestSimple(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
+	server.OnMessage(onMessage)
 
 	client := NewNioClient("localhost", 10001)
 	err = client.Open()
@@ -56,4 +57,13 @@ func TestSimple(t *testing.T) {
 	fmt.Println("exiting....")
 	time.Sleep(3 * time.Second)
 	fmt.Println("Clients", server.ClientsCount())
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p r i v a t e
+//----------------------------------------------------------------------------------------------------------------------
+
+func onMessage(message *NioMessage) interface{}{
+	fmt.Println("MESSAGE GOT FROM SERVER", message)
+	return "custom response from server handled message"
 }

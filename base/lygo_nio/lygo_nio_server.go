@@ -21,12 +21,14 @@ type NioServer struct {
 	clients    int
 	clientsMap map[string]*client
 	mux        sync.Mutex
+	handler    NioMessageHandler
 }
 
 type client struct {
-	//-- private --//
-	rw *bufio.ReadWriter
+	Id string
 }
+
+type NioMessageHandler func(message *NioMessage) interface{}
 
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
@@ -90,9 +92,16 @@ func (instance *NioServer) ClientsId() []string {
 	return []string{}
 }
 
+func (instance *NioServer) OnMessage(callback NioMessageHandler) {
+	if nil != instance {
+		instance.handler = callback
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
+
 func (instance *NioServer) open() {
 	for {
 		// accept connections
@@ -105,18 +114,39 @@ func (instance *NioServer) open() {
 	}
 }
 
+func (instance *NioServer) incClients(conn net.Conn) *client {
+	if nil != instance {
+		instance.mux.Lock()
+		defer instance.mux.Unlock()
+
+		c := new(client)
+		c.Id = conn.RemoteAddr().String()
+		instance.clients++
+		instance.clientsMap[c.Id] = c
+		return c
+	}
+	return nil
+}
+
+func (instance *NioServer) decClients(id string) {
+	if nil != instance {
+		instance.mux.Lock()
+		defer instance.mux.Unlock()
+
+		_, ok := instance.clientsMap[id]
+		if ok {
+			instance.clients--
+			delete(instance.clientsMap, id)
+		}
+	}
+}
+
 func (instance *NioServer) handleConnection(conn net.Conn) {
-	// new client
-	instance.mux.Lock()
 	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	defer conn.Close()
+
 	// new client connection
-	id := conn.RemoteAddr().String()
-	c := new(client)
-	c.rw = rw
-	instance.clients++
-	instance.clientsMap[id] = c
-	instance.mux.Unlock()
+	c := instance.incClients(conn)
 
 	// connection loop
 	for {
@@ -125,41 +155,38 @@ func (instance *NioServer) handleConnection(conn net.Conn) {
 		err := dec.Decode(&message)
 		if nil != err {
 			if err.Error() == "EOF" {
-				// client closed connection
-				instance.mux.Lock()
-				_, ok := instance.clientsMap[id]
-				if ok {
-					instance.clients--
-					delete(instance.clientsMap, id)
-				}
-				instance.mux.Unlock()
+				// client disconnected
 			}
 			// exit
-			return
+			break
 		}
 
-		if !instance.isHandshake(&message) {
+		if !instance.isHandshake(&message) && nil != instance.handler {
 			clientKey := message.PublicKey
+			if len(clientKey) > 0 {
+				// TODO: decode client message body
 
-			// TODO : do something with message
-			fmt.Println("SERVER", c, clientKey, message)
+			}
+			customResponse := instance.handler(&message)
+			if nil == customResponse {
+				customResponse = true
+			}
 
-		}
-
-		// response OK
-		response := new(NioMessage)
-		response.PublicKey = instance.PublicKey
-		response.Message = true
-		enc := gob.NewEncoder(rw)
-		err = enc.Encode(response)
-		if err != nil {
-			return
-		}
-		err = rw.Flush()
-		if err != nil {
-			return
+			err := sendResponse(customResponse, rw, &instance.PublicKey)
+			if err != nil {
+				break
+			}
+		} else {
+			// response OK (default)
+			err := sendResponse(true, rw, &instance.PublicKey)
+			if err != nil {
+				break
+			}
 		}
 	}
+
+	// client removed
+	instance.decClients(c.Id)
 }
 
 func (instance *NioServer) isHandshake(message *NioMessage) bool {
@@ -167,4 +194,20 @@ func (instance *NioServer) isHandshake(message *NioMessage) bool {
 		return string(v) == string(HANDSHAKE.Message.([]byte))
 	}
 	return false
+}
+
+func sendResponse(body interface{}, rw *bufio.ReadWriter, publicKey *string) error {
+	response := new(NioMessage)
+	response.PublicKey = *publicKey
+
+	// TODO: encode server message body
+	response.Message = body
+
+	enc := gob.NewEncoder(rw)
+	err := enc.Encode(response)
+	if err != nil {
+		return err
+	}
+	err = rw.Flush()
+	return err
 }
