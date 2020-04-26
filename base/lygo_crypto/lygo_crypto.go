@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"github.com/botikasm/lygo/base/lygo_io"
@@ -14,6 +15,17 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
+
+func GenerateSessionKey() [32]byte {
+	// crypto/rand.Reader is a good source of entropy for blinding the RSA
+	// operation.
+	rng := rand.Reader
+	key := make([]byte, 32)
+	if _, err := io.ReadFull(rng, key); err != nil {
+		panic("RNG failure")
+	}
+	return sha256.Sum256(key)
+}
 
 func MD5(text string) string {
 	hasher := md5.New()

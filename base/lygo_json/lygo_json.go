@@ -9,12 +9,16 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
-func Stringify(entity interface{}) string {
+func Bytes(entity interface{}) []byte {
 	b, err := json.Marshal(&entity)
 	if nil == err {
-		return string(b)
+		return b
 	}
-	return ""
+	return []byte{}
+}
+
+func Stringify(entity interface{}) string {
+	return string(Bytes(entity))
 }
 
 func Read(input interface{}, entity interface{}) (err error) {

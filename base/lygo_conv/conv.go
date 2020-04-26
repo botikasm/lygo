@@ -63,7 +63,7 @@ func ToString(val interface{}) string {
 	// array
 	if aa, tt := IsArray(val); aa {
 		// byte array??
-		if ba, b :=val.([]byte);b{
+		if ba, b := val.([]byte); b {
 			return string(ba)
 		} else {
 			response := []string{}
@@ -79,6 +79,14 @@ func ToString(val interface{}) string {
 
 	// map
 	if b, _ := IsMap(val); b {
+		data, err := json.Marshal(val)
+		if nil == err {
+			return string(data)
+		}
+	}
+
+	// struct
+	if b, _ := IsStruct(val); b {
 		data, err := json.Marshal(val)
 		if nil == err {
 			return string(data)
@@ -204,7 +212,6 @@ func ToBool(val interface{}) bool {
 	}
 	return false
 }
-
 
 func ToMap(val interface{}) map[string]interface{} {
 	if b, _ := IsString(val); b {
@@ -372,7 +379,6 @@ func NotEquals(val1, val2 interface{}) bool {
 	return false
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
@@ -386,7 +392,7 @@ func toArray(args ...interface{}) []interface{} {
 				v := tt.Index(i).Interface()
 				response = append(response, v)
 			}
-		}else {
+		} else {
 			response = append(response, ToString(val))
 		}
 	}

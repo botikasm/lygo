@@ -2,6 +2,7 @@ package lygo_nio
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"encoding/gob"
 	"fmt"
 	"net"
@@ -13,7 +14,6 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type NioServer struct {
-	PublicKey string
 
 	//-- private --//
 	port       int
@@ -22,10 +22,15 @@ type NioServer struct {
 	clientsMap map[string]*client
 	mux        sync.Mutex
 	handler    NioMessageHandler
+	// RSA
+	publicKey  *rsa.PublicKey
+	privateKey *rsa.PrivateKey
 }
 
 type client struct {
-	Id string
+	Id         string
+	publicKey  *rsa.PublicKey // public key of the client
+	sessionKey []byte         // session key for the client
 }
 
 type NioMessageHandler func(message *NioMessage) interface{}
@@ -49,6 +54,11 @@ func NewNioServer(port int) *NioServer {
 
 func (instance *NioServer) Open() error {
 	if nil != instance {
+		err := instance.initRSA()
+		if nil != err {
+			return err
+		}
+
 		listener, err := net.Listen("tcp", fmt.Sprintf(":%v", instance.port))
 		if nil != err {
 			return err
@@ -102,6 +112,21 @@ func (instance *NioServer) OnMessage(callback NioMessageHandler) {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
+func (instance *NioServer) initRSA() error {
+	if nil != instance && nil == instance.privateKey {
+		// TODO: implement loading from file
+
+		// auto-generates
+		pri, pub, err := keysGenerate(KEY_LEN)
+		if nil != err {
+			return err
+		}
+		instance.privateKey = pri
+		instance.publicKey = pub
+	}
+	return nil
+}
+
 func (instance *NioServer) open() {
 	for {
 		// accept connections
@@ -119,8 +144,11 @@ func (instance *NioServer) incClients(conn net.Conn) *client {
 		instance.mux.Lock()
 		defer instance.mux.Unlock()
 
+		session := newSessionKey()
+
 		c := new(client)
 		c.Id = conn.RemoteAddr().String()
+		c.sessionKey = session[:]
 		instance.clients++
 		instance.clientsMap[c.Id] = c
 		return c
@@ -161,24 +189,37 @@ func (instance *NioServer) handleConnection(conn net.Conn) {
 			break
 		}
 
-		if !instance.isHandshake(&message) && nil != instance.handler {
-			clientKey := message.PublicKey
-			if len(clientKey) > 0 {
-				// TODO: decode client message body
+		isHandshake := instance.isHandshake(&message)
+		if isHandshake {
+			// set public key for client
+			c.publicKey = message.PublicKey
+		}
 
+		if !isHandshake && nil != instance.handler {
+			if nil != c.publicKey && nil != c.sessionKey {
+				// decode client message body
+				if v, b := message.Body.([]byte); b {
+					data, err := decrypt(v, c.sessionKey)
+					if nil == err {
+						message.Body = data
+					} else {
+						// encryption error
+						fmt.Println("Server error decrypting data:", err)
+					}
+				}
 			}
 			customResponse := instance.handler(&message)
 			if nil == customResponse {
 				customResponse = true
 			}
 
-			err := sendResponse(customResponse, rw, &instance.PublicKey)
+			err := sendResponse(customResponse, rw, c.sessionKey, c.publicKey, instance.publicKey, isHandshake)
 			if err != nil {
 				break
 			}
 		} else {
 			// response OK (default)
-			err := sendResponse(true, rw, &instance.PublicKey)
+			err := sendResponse(true, rw, c.sessionKey, c.publicKey, instance.publicKey, isHandshake)
 			if err != nil {
 				break
 			}
@@ -190,18 +231,33 @@ func (instance *NioServer) handleConnection(conn net.Conn) {
 }
 
 func (instance *NioServer) isHandshake(message *NioMessage) bool {
-	if v, b := message.Message.([]byte); b {
-		return string(v) == string(HANDSHAKE.Message.([]byte))
+	if v, b := message.Body.([]byte); b {
+		return string(v) == string(HANDSHAKE.Body.([]byte))
 	}
 	return false
 }
 
-func sendResponse(body interface{}, rw *bufio.ReadWriter, publicKey *string) error {
+func sendResponse(body interface{}, rw *bufio.ReadWriter, sessionKey []byte, clientKey, serverKey *rsa.PublicKey, isHandshake bool) error {
 	response := new(NioMessage)
-	response.PublicKey = *publicKey
 
-	// TODO: encode server message body
-	response.Message = body
+	// public key is passed only with handshake
+	if isHandshake {
+		response.PublicKey = serverKey
+		response.SessionKey, _ = encryptKey(sessionKey, clientKey)
+	}
+
+	s := serialize(body)
+
+	// encode server message body
+	if nil != clientKey && !isHandshake {
+		data, err := encrypt(s, sessionKey)
+		if nil == err {
+			body = data
+		} else {
+			fmt.Println("Server error encrypting data", err)
+		}
+	}
+	response.Body = s
 
 	enc := gob.NewEncoder(rw)
 	err := enc.Encode(response)
