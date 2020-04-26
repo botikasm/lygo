@@ -243,7 +243,9 @@ func sendResponse(body interface{}, rw *bufio.ReadWriter, sessionKey []byte, cli
 	// public key is passed only with handshake
 	if isHandshake {
 		response.PublicKey = serverKey
-		response.SessionKey, _ = encryptKey(sessionKey, clientKey)
+		if nil!=clientKey{
+			response.SessionKey, _ = encryptKey(sessionKey, clientKey)
+		}
 	}
 
 	s := serialize(body)

@@ -118,6 +118,8 @@ func TestBigData(t *testing.T) {
 	}
 	server.OnMessage(onMessage)
 
+	timeStart := time.Now()
+
 	client := NewNioClient("localhost", 10001)
 	client.Secure = true // enable cryptography
 	err = client.Open()
@@ -148,6 +150,14 @@ func TestBigData(t *testing.T) {
 	body := lygo_conv.ToString(response.Body)
 	fmt.Println("Response from server:")
 	fmt.Println(body)
+	response, err = client.Send(data)
+	if nil != err {
+		t.Error(err)
+		t.FailNow()
+	}
+	body = lygo_conv.ToString(response.Body)
+	fmt.Println("Response from server:")
+	fmt.Println(body)
 
 	// disconnect client
 	err = client.Close()
@@ -155,6 +165,9 @@ func TestBigData(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
+
+	timeEnd := time.Now()
+	fmt.Println("elapsed", timeEnd.Sub(timeStart))
 
 	fmt.Println("exiting....")
 }
