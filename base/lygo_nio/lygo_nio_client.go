@@ -20,10 +20,11 @@ type NioClient struct {
 	Secure  bool
 
 	//-- private --//
-	conn net.Conn
-	host string
-	port int
-	mux  sync.Mutex
+	conn     net.Conn
+	host     string
+	port     int
+	mux      sync.Mutex
+	stopChan chan bool
 	// RSA
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
@@ -40,6 +41,7 @@ func NewNioClient(host string, port int) *NioClient {
 	instance.host = host
 	instance.port = port
 	instance.Timeout = 10 * time.Second
+	instance.stopChan = make(chan bool, 1)
 
 	return instance
 }
@@ -66,8 +68,15 @@ func (instance *NioClient) Close() error {
 			instance.conn = nil
 			return err
 		}
+		instance.stopChan <- true
 	}
 	return nil
+}
+
+// Wait is stopped
+func (instance *NioClient) Join() {
+	// locks and wait for exit response
+	<-instance.stopChan
 }
 
 func (instance *NioClient) Send(data interface{}) (*NioMessage, error) {
@@ -192,7 +201,7 @@ func (instance *NioClient) send(message *NioMessage, handshake bool) (*NioMessag
 				}
 			} else {
 				// handshake
-				if len(response.SessionKey)>0 {
+				if len(response.SessionKey) > 0 {
 					data, err := decryptKey(response.SessionKey, instance.privateKey)
 					if nil == err {
 						instance.sessionKey = data

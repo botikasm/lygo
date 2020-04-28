@@ -16,6 +16,7 @@ const TOOL_ARRAYS = "$arrays"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolArrays struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -26,6 +27,7 @@ type ScriptingToolArrays struct {
 
 func NewToolArrays(params *ScriptingToolParams) *ScriptingToolArrays {
 	result := new(ScriptingToolArrays)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -34,6 +36,11 @@ func NewToolArrays(params *ScriptingToolParams) *ScriptingToolArrays {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolArrays) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolArrays) SetContext(context interface{}) {
 	tool.context = context

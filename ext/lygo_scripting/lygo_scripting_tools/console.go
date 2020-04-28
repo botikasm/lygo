@@ -48,6 +48,10 @@ func NewToolConsole(params *ScriptingToolParams) *ScriptingToolConsole {
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
 
+func (tool *ScriptingToolConsole) Init(params *ScriptingToolParams) {
+	tool.params = params
+}
+
 func (tool *ScriptingToolConsole) SetContext(context interface{}) {
 	tool.context = context
 }

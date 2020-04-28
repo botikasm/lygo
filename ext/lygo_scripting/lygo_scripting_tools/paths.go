@@ -17,6 +17,7 @@ const TOOL_PATHS = "$paths"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolPaths struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -27,6 +28,7 @@ type ScriptingToolPaths struct {
 
 func NewToolPaths(params *ScriptingToolParams) *ScriptingToolPaths {
 	result := new(ScriptingToolPaths)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -35,6 +37,11 @@ func NewToolPaths(params *ScriptingToolParams) *ScriptingToolPaths {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolPaths) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolPaths) SetContext(context interface{}) {
 	tool.context = context

@@ -1,0 +1,16 @@
+{
+  "address": ":10001",
+  "database": {
+    "endpoints": [
+      "http://localhost:8529"
+    ],
+    "authentication": {
+      "username": "root",
+      "password": "xxxx"
+    }
+  },
+  "sync": [
+
+  ]
+
+}

@@ -1,0 +1,24 @@
+{
+  "address": "127.0.0.1:10001",
+  "database": {
+    "endpoints": [
+      "http://localhost:8529"
+    ],
+    "authentication": {
+      "username": "root",
+      "password": "xxxx"
+    }
+  },
+  "sync": [
+    {
+      "local_dbname": "sync_slave",
+      "remote_dbname": "sync_master",
+      "actions": [
+        {
+          "local_collection": "coll_slave",
+          "remote_collection": "coll_master"
+        }
+      ]
+    }
+  ]
+}

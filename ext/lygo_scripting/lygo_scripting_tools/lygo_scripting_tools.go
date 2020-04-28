@@ -3,6 +3,7 @@ package lygo_scripting_tools
 import "github.com/dop251/goja"
 
 type ScriptingTool interface {
+	Init(params *ScriptingToolParams)
 	SetContext(context interface{})
 }
 

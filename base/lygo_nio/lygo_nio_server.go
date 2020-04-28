@@ -22,6 +22,7 @@ type NioServer struct {
 	clientsMap map[string]*client
 	mux        sync.Mutex
 	handler    NioMessageHandler
+	stopChan chan bool
 	// RSA
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
@@ -44,6 +45,7 @@ func NewNioServer(port int) *NioServer {
 	instance.clients = 0
 	instance.port = port
 	instance.clientsMap = make(map[string]*client)
+	instance.stopChan = make(chan bool, 1)
 
 	return instance
 }
@@ -73,11 +75,20 @@ func (instance *NioServer) Open() error {
 
 func (instance *NioServer) Close() error {
 	if nil != instance {
+		var err error
 		if nil != instance.listener {
-			return instance.listener.Close()
+			err = instance.listener.Close()
 		}
+		instance.stopChan <- true
+		return err
 	}
 	return nil
+}
+
+// Wait is stopped
+func (instance *NioServer) Join() {
+	// locks and wait for exit response
+	<-instance.stopChan
 }
 
 func (instance *NioServer) ClientsCount() int {

@@ -17,6 +17,7 @@ const TOOL_CONVERT = "$convert"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolConvert struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -27,6 +28,7 @@ type ScriptingToolConvert struct {
 
 func NewToolConvert(params *ScriptingToolParams) *ScriptingToolConvert {
 	result := new(ScriptingToolConvert)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -35,6 +37,11 @@ func NewToolConvert(params *ScriptingToolParams) *ScriptingToolConvert {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolConvert) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolConvert) SetContext(context interface{}) {
 	tool.context = context
@@ -63,8 +70,6 @@ func (tool *ScriptingToolConvert) Num2Word(call goja.FunctionCall) goja.Value {
 
 	return tool.runtime.ToValue("")
 }
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e

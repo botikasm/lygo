@@ -54,8 +54,20 @@ func (engine *ScripEngine) ToValue(value interface{}) goja.Value {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+//	t o o l s
+//----------------------------------------------------------------------------------------------------------------------
+
+func (engine *ScripEngine) AddTool(name string, tool lygo_scripting_tools.ScriptingTool)  {
+	params := engine.getParams()
+	tool.Init(params)
+	engine.runtime.Set(name, tool)
+	engine.tools = append(engine.tools, tool)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 //	c o n t e x t
 //----------------------------------------------------------------------------------------------------------------------
+
 
 func (engine *ScripEngine) SetToolsContext(value interface{}) {
 	for _, tool := range engine.tools {
@@ -77,12 +89,18 @@ func (engine *ScripEngine) SetToolContext(toolName string, value interface{}) {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (engine *ScripEngine) initTools() {
-
+func (engine *ScripEngine) getParams() *lygo_scripting_tools.ScriptingToolParams{
 	params := new(lygo_scripting_tools.ScriptingToolParams)
 	params.Runtime = engine.runtime
 	params.Root = &engine.Root
 	params.Name = &engine.Name
+
+	return params
+}
+
+func (engine *ScripEngine) initTools() {
+
+	params := engine.getParams()
 
 	Tconsole := lygo_scripting_tools.NewToolConsole(params)
 	engine.runtime.Set(lygo_scripting_tools.TOOL_CONSOLE, Tconsole)

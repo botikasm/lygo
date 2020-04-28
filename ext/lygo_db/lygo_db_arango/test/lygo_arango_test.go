@@ -16,8 +16,10 @@ import (
 func TestSimple(t *testing.T) {
 
 	ctext, _ := lygo_io.ReadTextFromFile("config.json")
+	psw, _ := lygo_io.ReadTextFromFile("psw.txt")
 	config := lygo_db_arango.NewArangoConfig()
 	config.Parse(ctext)
+	config.Authentication.Password = psw
 
 	conn := lygo_db_arango.NewArangoConnection(config)
 	err := conn.Open()

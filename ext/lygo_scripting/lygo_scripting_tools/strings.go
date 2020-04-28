@@ -18,6 +18,7 @@ const TOOL_STRINGS = "$strings"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolStrings struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -28,6 +29,7 @@ type ScriptingToolStrings struct {
 
 func NewToolStrings(params *ScriptingToolParams) *ScriptingToolStrings {
 	result := new(ScriptingToolStrings)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -36,6 +38,11 @@ func NewToolStrings(params *ScriptingToolParams) *ScriptingToolStrings {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolStrings) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolStrings) SetContext(context interface{}) {
 	tool.context = context

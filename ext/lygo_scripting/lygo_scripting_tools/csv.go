@@ -18,6 +18,7 @@ const TOOL_CSV = "$csv"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolCSV struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -28,6 +29,7 @@ type ScriptingToolCSV struct {
 
 func NewToolCSV(params *ScriptingToolParams) *ScriptingToolCSV {
 	result := new(ScriptingToolCSV)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -36,6 +38,11 @@ func NewToolCSV(params *ScriptingToolParams) *ScriptingToolCSV {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolCSV) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolCSV) SetContext(context interface{}) {
 	tool.context = context

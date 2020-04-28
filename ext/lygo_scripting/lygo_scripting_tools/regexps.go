@@ -19,6 +19,7 @@ const TOOL_REGEXPS = "$regexps"
 //----------------------------------------------------------------------------------------------------------------------
 
 type ScriptingToolRegExps struct {
+	params  *ScriptingToolParams
 	runtime *goja.Runtime
 	context interface{}
 }
@@ -29,6 +30,7 @@ type ScriptingToolRegExps struct {
 
 func NewToolRegExps(params *ScriptingToolParams) *ScriptingToolRegExps {
 	result := new(ScriptingToolRegExps)
+	result.params = params
 	result.runtime = params.Runtime
 
 	return result
@@ -37,6 +39,11 @@ func NewToolRegExps(params *ScriptingToolParams) *ScriptingToolRegExps {
 //----------------------------------------------------------------------------------------------------------------------
 //	i n t e r f a c e
 //----------------------------------------------------------------------------------------------------------------------
+
+func (tool *ScriptingToolRegExps) Init(params *ScriptingToolParams) {
+	tool.params = params
+	tool.runtime = params.Runtime
+}
 
 func (tool *ScriptingToolRegExps) SetContext(context interface{}) {
 	tool.context = context
