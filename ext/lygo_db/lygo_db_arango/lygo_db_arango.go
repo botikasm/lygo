@@ -12,11 +12,11 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 var (
-	ErrMissingConfiguration  = errors.New("missing_configuration")
-	ErrConnectionNotReady    = errors.New("connection_not_ready")
-	ErrDatabaseDoesNotExists = errors.New("database_does_not_exists")
+	ErrMissingConfiguration    = errors.New("missing_configuration")
+	ErrConnectionNotReady      = errors.New("connection_not_ready")
+	ErrDatabaseDoesNotExists   = errors.New("database_does_not_exists")
 	ErrCollectionDoesNotExists = errors.New("collection_does_not_exists")
-	ErrMissingDocumentKey = errors.New("document_missing_key")
+	ErrMissingDocumentKey      = errors.New("document_missing_key")
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -91,11 +91,14 @@ func (instance *ArangoConnection) Open() (err error) {
 }
 
 func (instance *ArangoConnection) IsReady() bool {
-	return nil != instance.client
+	if nil != instance {
+		return nil != instance.client
+	}
+	return false
 }
 
 func (instance *ArangoConnection) Database(name string, createIfNotExists bool) (response *ArangoDatabase, err error) {
-	if !instance.IsReady() {
+	if nil==instance || !instance.IsReady() {
 		return nil, ErrConnectionNotReady
 	}
 	ctx := context.Background()

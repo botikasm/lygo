@@ -1,9 +1,17 @@
 package lygo_sys
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_json"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -74,3 +82,55 @@ func Shutdown(a ...string) error {
 	}
 	return shutdown(adminPsw)
 }
+
+// ID returns the platform specific machine id of the current host OS.
+// Regard the returned id as "confidential" and consider using ProtectedID() instead.
+// THANKS TO: github.com/denisbrodbeck/machineid
+func ID() (string, error) {
+	id, err := machineID()
+	if err != nil {
+		return "", fmt.Errorf("machineid: %v", err)
+	}
+	return id, nil
+}
+
+// ProtectedID returns a hashed version of the machine ID in a cryptographically secure way,
+// using a fixed, application-specific key.
+// Internally, this function calculates HMAC-SHA256 of the application ID, keyed by the machine ID.
+// THANKS TO: github.com/denisbrodbeck/machineid
+func ProtectedID(appID string) (string, error) {
+	id, err := ID()
+	if err != nil {
+		return "", fmt.Errorf("machineid: %v", err)
+	}
+	return protect(appID, id), nil
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p r i v a t e
+//----------------------------------------------------------------------------------------------------------------------
+
+// run wraps `exec.Command` with easy access to stdout and stderr.
+func run(stdout, stderr io.Writer, cmd string, args ...string) error {
+	c := exec.Command(cmd, args...)
+	c.Stdin = os.Stdin
+	c.Stdout = stdout
+	c.Stderr = stderr
+	return c.Run()
+}
+
+// protect calculates HMAC-SHA256 of the application ID, keyed by the machine ID and returns a hex-encoded string.
+func protect(appID, id string) string {
+	mac := hmac.New(sha256.New, []byte(id))
+	mac.Write([]byte(appID))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func readFile(filename string) ([]byte, error) {
+	return ioutil.ReadFile(filename)
+}
+
+func trim(s string) string {
+	return strings.TrimSpace(strings.Trim(s, "\n"))
+}
+

@@ -5,6 +5,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_strings"
+	"time"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -18,6 +19,7 @@ type DBSyncConfig struct {
 }
 
 type DBSyncDatabaseConfig struct {
+	Driver         string                    `json:"driver"`
 	Endpoints      []string                  `json:"endpoints"`
 	Authentication *DBSyncDatabaseConfigAuth `json:"authentication"`
 }
@@ -28,8 +30,18 @@ type DBSyncDatabaseConfigAuth struct {
 }
 
 type DBSyncConfigSync struct {
-	LocalDBName  string `json:"local_dbname"`
-	RemoteDBName string `json:"remote_dbname"`
+	Uid          string                    `json:"uid"`
+	Interval     time.Duration             `json:"interval_sec"`
+	LocalDBName  string                    `json:"local_dbname"`
+	RemoteDBName string                    `json:"remote_dbname"`
+	Actions      []*DBSyncConfigSyncAction `json:"actions"`
+}
+
+type DBSyncConfigSyncAction struct {
+	LocalCollection  string   `json:"local_collection"`
+	RemoteCollection string   `json:"remote_collection"`
+	Filter           string   `json:"filter"`
+	UniqueKey        []string `json:"unique_key"`
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -48,7 +60,7 @@ func (instance *DBSyncConfig) Parse(text string) error {
 	return json.Unmarshal([]byte(text), &instance)
 }
 
-func (instance *DBSyncConfig) ToString() string {
+func (instance *DBSyncConfig) String() string {
 	b, err := json.Marshal(&instance)
 	if nil == err {
 		return string(b)
@@ -86,7 +98,7 @@ func (instance *DBSyncDatabaseConfig) Parse(text string) error {
 	return json.Unmarshal([]byte(text), &instance)
 }
 
-func (instance *DBSyncDatabaseConfig) ToString() string {
+func (instance *DBSyncDatabaseConfig) String() string {
 	b, err := json.Marshal(&instance)
 	if nil == err {
 		return string(b)
@@ -102,7 +114,23 @@ func (instance *DBSyncDatabaseConfigAuth) Parse(text string) error {
 	return json.Unmarshal([]byte(text), &instance)
 }
 
-func (instance *DBSyncDatabaseConfigAuth) ToString() string {
+func (instance *DBSyncDatabaseConfigAuth) String() string {
+	b, err := json.Marshal(&instance)
+	if nil == err {
+		return string(b)
+	}
+	return ""
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	DBSyncConfigSync
+//----------------------------------------------------------------------------------------------------------------------
+
+func (instance *DBSyncConfigSync) Parse(text string) error {
+	return json.Unmarshal([]byte(text), &instance)
+}
+
+func (instance *DBSyncConfigSync) String() string {
 	b, err := json.Marshal(&instance)
 	if nil == err {
 		return string(b)

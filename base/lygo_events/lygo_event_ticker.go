@@ -27,16 +27,16 @@ type EventTickerCallback func(*EventTicker)
 //----------------------------------------------------------------------------------------------------------------------
 
 func NewEventTicker(timeout time.Duration, callback EventTickerCallback) *EventTicker {
-	w := &EventTicker{
+	instance := &EventTicker{
 		timer:    time.NewTicker(timeout),
 		timeout:  timeout,
 		stopChan: make(chan bool, 1),
 		callback: callback,
 	}
 
-	go w.loop()
+	go instance.loop()
 
-	return w
+	return instance
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,52 +44,52 @@ func NewEventTicker(timeout time.Duration, callback EventTickerCallback) *EventT
 //----------------------------------------------------------------------------------------------------------------------
 
 // Wait EventTicker is stopped
-func (w *EventTicker) Join() {
+func (instance *EventTicker) Join() {
 	// locks and wait for exit response
-	<-w.stopChan
+	<-instance.stopChan
 }
 
 // Start .... Start the timer
-func (w *EventTicker) Start() {
-	if nil != w.timer {
-		w.timer.Stop()
-		w.timer = nil
+func (instance *EventTicker) Start() {
+	if nil != instance.timer {
+		instance.timer.Stop()
+		instance.timer = nil
 	}
-	w.timer = time.NewTicker(w.timeout)
+	instance.timer = time.NewTicker(instance.timeout)
 }
 
 // Stop ... stops the timer
-func (w *EventTicker) Stop() {
-	if nil != w.timer {
-		w.timer.Stop()
-		w.stopChan <- true
-		w.timer = nil
+func (instance *EventTicker) Stop() {
+	if nil != instance.timer {
+		instance.timer.Stop()
+		instance.stopChan <- true
+		instance.timer = nil
 	}
 }
 
-func (w *EventTicker) Pause() {
-	if nil != w.timer && !w.paused {
-		w.paused = true
+func (instance *EventTicker) Pause() {
+	if nil != instance.timer && !instance.paused {
+		instance.paused = true
 	}
 }
 
-func (w *EventTicker) Resume() {
-	if nil != w.timer && w.paused {
-		w.paused = false
+func (instance *EventTicker) Resume() {
+	if nil != instance.timer && instance.paused {
+		instance.paused = false
 	}
 }
 
-func (w *EventTicker) Lock() {
-	if nil!=w && !w.locked {
-		w.locked = true
-		w.mux.Lock()
+func (instance *EventTicker) Lock() {
+	if nil!= instance && !instance.locked {
+		instance.locked = true
+		instance.mux.Lock()
 	}
 }
 
-func (w *EventTicker) Unlock() {
-	if nil!=w && w.locked {
-		w.mux.Unlock()
-		w.locked = false
+func (instance *EventTicker) Unlock() {
+	if nil!= instance && instance.locked {
+		instance.mux.Unlock()
+		instance.locked = false
 	}
 }
 
@@ -97,20 +97,20 @@ func (w *EventTicker) Unlock() {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (w *EventTicker) loop() {
-	if nil!=w{
+func (instance *EventTicker) loop() {
+	if nil!= instance {
 		for {
-			if nil!=w && nil != w.timer {
+			if nil!= instance && nil != instance.timer {
 				select {
-				case <-w.stopChan:
+				case <-instance.stopChan:
 					return
-				case <-w.timer.C:
+				case <-instance.timer.C:
 					// event
-					if nil != w.callback && !w.paused {
+					if nil != instance.callback && !instance.paused {
 						// thread safe call
-						w.Lock()
-						w.callback(w)
-						w.Unlock()
+						instance.Lock()
+						instance.callback(instance)
+						instance.Unlock()
 					}
 				}
 			} else{

@@ -1,6 +1,7 @@
 {
   "address": "127.0.0.1:10001",
   "database": {
+    "driver": "arango",
     "endpoints": [
       "http://localhost:8529"
     ],
@@ -11,12 +12,24 @@
   },
   "sync": [
     {
+      "uid": "update_some_collections",
       "local_dbname": "sync_slave",
       "remote_dbname": "sync_master",
+      "interval_sec": 3,
       "actions": [
         {
           "local_collection": "coll_slave",
-          "remote_collection": "coll_master"
+          "remote_collection": "coll_master",
+          "command": {
+            "filter": "",
+            "select": "FOR doc IN @@collection FILTER (doc._db_sync_last==NULL) UPDATE doc WITH { \"_db_sync_last\":@timestamp } IN @@collection RETURN NEW",
+            "select_params": {
+              "@collection": "$collection",
+              "timestamp": "$timestamp",
+              "now": "$now"
+            },
+            "update": ""
+          }
         }
       ]
     }

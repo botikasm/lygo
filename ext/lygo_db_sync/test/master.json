@@ -1,6 +1,7 @@
 {
   "address": ":10001",
   "database": {
+    "driver": "arango",
     "endpoints": [
       "http://localhost:8529"
     ],
@@ -9,8 +10,5 @@
       "password": "xxxx"
     }
   },
-  "sync": [
-
-  ]
-
+  "sync": []
 }

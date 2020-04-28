@@ -2,13 +2,20 @@ package test
 
 import (
 	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/ext/lygo_db_sync"
+	"github.com/botikasm/lygo/ext/lygo_logs"
 	"testing"
 )
 
 func TestSimple(t *testing.T) {
 
 	psw, _ := lygo_io.ReadTextFromFile("./psw.txt")
+
+	// init workspace and logging
+	lygo_paths.SetWorkspaceParent("./test")
+	lygo_logs.SetOutput(lygo_logs.OUTPUT_FILE)
+
 
 	// master
 	mc := new(lygo_db_sync.DBSyncConfig)
