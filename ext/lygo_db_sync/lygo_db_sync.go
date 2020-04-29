@@ -28,6 +28,9 @@ var (
 //----------------------------------------------------------------------------------------------------------------------
 //	t y p e
 //----------------------------------------------------------------------------------------------------------------------
+type DBSyncNetConnection interface {
+	IsOpen() bool
+}
 
 type DBSyncDriver interface {
 	Open() error
@@ -44,6 +47,7 @@ type DBSync struct {
 	dbConfig     *DBSyncDatabaseConfig
 	config       *DBSyncConfigSync
 	ticker       *lygo_events.EventTicker
+	conn         DBSyncNetConnection
 	errorHandler func(sender *DBSync, err error)
 	syncHandler  func(sender *DBSync, driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{})
 }
@@ -52,11 +56,12 @@ type DBSync struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewDBSync(uid string, dbConfig *DBSyncDatabaseConfig, config *DBSyncConfigSync) *DBSync {
+func NewDBSync(uid string, conn DBSyncNetConnection, dbConfig *DBSyncDatabaseConfig, config *DBSyncConfigSync) *DBSync {
 	instance := new(DBSync)
 	instance.UID = uid
 	instance.dbConfig = dbConfig
 	instance.config = config
+	instance.conn = conn
 	instance.ticker = lygo_events.NewEventTicker(config.Interval*time.Second, instance.onLoop)
 
 	return instance
@@ -112,6 +117,11 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 			instance.triggerError("lygo_db_sync.onLoop", message)
 		}
 	}()
+
+	// only if connection is open
+	if !instance.conn.IsOpen() {
+		return
+	}
 
 	driverName := instance.dbConfig.Driver
 	driver := GetDriver(driverName, instance.dbConfig)

@@ -58,7 +58,10 @@ func NewNioClient(host string, port int) *NioClient {
 
 func (instance *NioClient) IsOpen() bool {
 	if nil != instance {
-		return !instance.closed
+		if !instance.closed {
+			err := instance.test() // test for real feedback
+			return nil == err
+		}
 	}
 	return false
 }

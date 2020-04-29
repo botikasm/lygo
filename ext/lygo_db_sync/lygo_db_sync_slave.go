@@ -1,6 +1,7 @@
 package lygo_db_sync
 
 import (
+	"fmt"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"github.com/botikasm/lygo/base/lygo_sys"
 	"github.com/botikasm/lygo/ext/lygo_logs"
@@ -70,7 +71,11 @@ func (instance *DBSyncSlave) Join() {
 //----------------------------------------------------------------------------------------------------------------------
 
 func (instance *DBSyncSlave) init() {
-	instance.UID, _ = lygo_sys.ID()
+	if len(instance.config.Uuid) > 0 {
+		instance.UID = instance.config.Uuid
+	} else {
+		instance.UID, _ = lygo_sys.ID()
+	}
 	instance.client = lygo_nio.NewNioClient(instance.config.Host(), instance.config.Port())
 
 }
@@ -78,7 +83,7 @@ func (instance *DBSyncSlave) init() {
 func (instance *DBSyncSlave) startTickers() {
 	items := instance.config.Sync
 	for _, config := range items {
-		ticker := NewDBSync(instance.UID, instance.config.Database, config)
+		ticker := NewDBSync(instance.UID, instance.client, instance.config.Database, config)
 		ticker.OnError(instance.onTickerError)
 		ticker.OnSync(instance.onTickerSync)
 		instance.tickers = append(instance.tickers, ticker)
@@ -105,6 +110,7 @@ func (instance *DBSyncSlave) onTickerError(sender *DBSync, err error) {
 func (instance *DBSyncSlave) onTickerSync(sender *DBSync, driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{}) {
 
 	// TODO: HANDLE SYNC
-	lygo_logs.Info(driver, remoteDatabase)
+	uid := instance.UID
+	fmt.Println(uid, driver, remoteDatabase)
 
 }

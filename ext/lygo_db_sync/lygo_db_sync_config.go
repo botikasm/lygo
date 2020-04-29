@@ -13,6 +13,7 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type DBSyncConfig struct {
+	Uuid     string                `json:"uuid"`
 	Address  string                `json:"address"`
 	Database *DBSyncDatabaseConfig `json:"database"`
 	Sync     []*DBSyncConfigSync   `json:"sync"`
