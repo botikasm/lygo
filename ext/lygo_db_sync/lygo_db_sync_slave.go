@@ -2,6 +2,7 @@ package lygo_db_sync
 
 import (
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"github.com/botikasm/lygo/base/lygo_sys"
 	"github.com/botikasm/lygo/ext/lygo_logs"
@@ -18,6 +19,7 @@ type DBSyncSlave struct {
 	config  *DBSyncConfig
 	client  *lygo_nio.NioClient
 	tickers []*DBSync
+	events  *lygo_events.Emitter
 	mux     sync.Mutex
 }
 
@@ -29,6 +31,8 @@ func NewDBSyncSlave(config *DBSyncConfig) *DBSyncSlave {
 	instance := new(DBSyncSlave)
 	instance.config = config
 	instance.tickers = make([]*DBSync, 0)
+	instance.events = lygo_events.NewEmitter()
+
 	instance.init()
 
 	return instance
@@ -107,10 +111,10 @@ func (instance *DBSyncSlave) onTickerError(sender *DBSync, err error) {
 	}
 }
 
-func (instance *DBSyncSlave) onTickerSync(sender *DBSync, driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{}) {
+func (instance *DBSyncSlave) onTickerSync(message *DBSyncMessage) {
 
-	// TODO: HANDLE SYNC
+	// TODO: SEND SYNC MESSAGE TO SERVER
 	uid := instance.UID
-	fmt.Println(uid, driver, remoteDatabase)
+	fmt.Println(uid, message)
 
 }

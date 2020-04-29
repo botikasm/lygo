@@ -40,6 +40,15 @@ type DBSyncDriver interface {
 	Execute(database string, query string, params map[string]interface{}) ([]interface{}, error)
 }
 
+type DBSyncMessage struct {
+	UID        string
+	Driver     string
+	Database   string
+	Collection string
+	UniqueKey  []string
+	Data       interface{}
+}
+
 type DBSync struct {
 	UID string
 
@@ -49,7 +58,7 @@ type DBSync struct {
 	ticker       *lygo_events.EventTicker
 	conn         DBSyncNetConnection
 	errorHandler func(sender *DBSync, err error)
-	syncHandler  func(sender *DBSync, driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{})
+	syncHandler  func(message *DBSyncMessage)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -90,7 +99,7 @@ func (instance *DBSync) OnError(callback func(sender *DBSync, err error)) {
 		instance.errorHandler = callback
 	}
 }
-func (instance *DBSync) OnSync(callback func(sender *DBSync, driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{})) {
+func (instance *DBSync) OnSync(callback func(message *DBSyncMessage)) {
 	if nil != instance {
 		instance.syncHandler = callback
 	}
@@ -159,7 +168,15 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 
 func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{}) {
 	if nil != instance.syncHandler {
-		instance.syncHandler(instance, driver, remoteDatabase, remoteCollection, uniqueKey, data)
+		message := &DBSyncMessage{
+			UID:        instance.UID,
+			Driver:     driver,
+			Database:   remoteDatabase,
+			Collection: remoteCollection,
+			UniqueKey:  uniqueKey,
+			Data:       data,
+		}
+		instance.syncHandler(message)
 	}
 }
 
