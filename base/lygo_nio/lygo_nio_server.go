@@ -22,7 +22,8 @@ type NioServer struct {
 	clientsMap map[string]*client
 	mux        sync.Mutex
 	handler    NioMessageHandler
-	stopChan chan bool
+	stopChan   chan bool
+	active     bool
 	// RSA
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
@@ -45,7 +46,7 @@ func NewNioServer(port int) *NioServer {
 	instance.clients = 0
 	instance.port = port
 	instance.clientsMap = make(map[string]*client)
-	instance.stopChan = make(chan bool, 1)
+	instance.active = false
 
 	return instance
 }
@@ -54,33 +55,48 @@ func NewNioServer(port int) *NioServer {
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func (instance *NioServer) IsOpen() bool {
+	if nil != instance {
+		return instance.active
+	}
+	return false
+}
+
 func (instance *NioServer) Open() error {
 	if nil != instance {
-		err := instance.initRSA()
-		if nil != err {
-			return err
-		}
+		if !instance.active {
+			instance.active = true
+			instance.stopChan = make(chan bool, 1)
 
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%v", instance.port))
-		if nil != err {
-			return err
-		}
-		instance.listener = listener
+			err := instance.initRSA()
+			if nil != err {
+				return err
+			}
 
-		// main listener loop
-		go instance.open()
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%v", instance.port))
+			if nil != err {
+				return err
+			}
+			instance.listener = listener
+
+			// main listener loop
+			go instance.open()
+		}
 	}
 	return nil
 }
 
 func (instance *NioServer) Close() error {
 	if nil != instance {
-		var err error
-		if nil != instance.listener {
-			err = instance.listener.Close()
+		if instance.active {
+			instance.active = false
+			var err error
+			if nil != instance.listener {
+				err = instance.listener.Close()
+			}
+			instance.stopChan <- true
+			return err
 		}
-		instance.stopChan <- true
-		return err
 	}
 	return nil
 }
@@ -254,7 +270,7 @@ func sendResponse(body interface{}, rw *bufio.ReadWriter, sessionKey []byte, cli
 	// public key is passed only with handshake
 	if isHandshake {
 		response.PublicKey = serverKey
-		if nil!=clientKey{
+		if nil != clientKey {
 			response.SessionKey, _ = encryptKey(sessionKey, clientKey)
 		}
 	}

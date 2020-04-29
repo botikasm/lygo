@@ -3,10 +3,70 @@ package lygo_nio
 import (
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestRunServer(t *testing.T) {
+	server := NewNioServer(10001)
+	err := server.Open()
+	if nil != err {
+		t.Error(err)
+		t.FailNow()
+	}
+	server.OnMessage(onMessage)
+
+	// stop after 3 seconds
+	go func() {
+		time.Sleep(5 * time.Second)
+		server.Close()
+	}()
+
+	fmt.Println("Server listening on port:", server.port)
+	server.Join()
+	fmt.Println("Server CLOSE")
+}
+
+func TestRunClientPing(t *testing.T) {
+	server := NewNioServer(10001)
+	err := server.Open()
+	if nil != err {
+		t.Error(err)
+		t.FailNow()
+	}
+	fmt.Println("Server listening on port:", server.port)
+
+	// start and stop server every 3 secs
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if server.IsOpen() {
+				fmt.Println("SERVER", "off")
+				server.Close()
+			} else {
+				fmt.Println("SERVER", "on")
+				server.Open()
+			}
+		}
+	}()
+
+	client := NewNioClient("localhost", 10001)
+	client.Secure = true // enable cryptography
+	client.OnConnect(func(e *lygo_events.Event) {
+		fmt.Println("CLIENT", "connected")
+	})
+	client.OnDisconnect(func(e *lygo_events.Event) {
+		fmt.Println("CLIENT", "disconnected")
+	})
+	err = client.Open()
+	if nil != err {
+		t.Error(err)
+		t.FailNow()
+	}
+	client.Join()
+}
 
 func TestSimple(t *testing.T) {
 
@@ -180,8 +240,8 @@ func onMessage(message *NioMessage) interface{} {
 	body := lygo_conv.ToString(message.Body)
 	if strings.Index(body, "{") > -1 {
 		m := lygo_conv.ToMap(body)
-		if v,b:=m["big"];b{
-			a,_:=v.([]interface{})
+		if v, b := m["big"]; b {
+			a, _ := v.([]interface{})
 			fmt.Println("COMPLEX MESSAGE ARRIVED ON SERVER. big:", len(a))
 			return a
 		} else {
