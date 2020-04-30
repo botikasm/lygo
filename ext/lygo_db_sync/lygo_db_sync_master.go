@@ -1,6 +1,7 @@
 package lygo_db_sync
 
 import (
+	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"sync"
 )
@@ -72,5 +73,29 @@ func (instance *DBSyncMaster) onMessage(message *lygo_nio.NioMessage) interface{
 	instance.mux.Lock()
 	defer instance.mux.Unlock()
 
-	return nil
+	if v, b := message.Body.([]byte); b {
+		var body DBSyncMessage
+		err := lygo_json.Read(v, &body)
+		if nil == err {
+			driver := GetDriver(body.Driver, instance.config.Database)
+			if nil != driver {
+				err := driver.Open()
+				if nil==err{
+					uid := body.UID
+					database := body.Database
+					collection := body.Collection
+					item := body.Data
+					if nil != item && len(uid) > 0 && len(database) > 0 && len(collection) > 0 {
+						if entity,b:=item.(map[string]interface{});b{
+							entity, err = driver.Merge(database, collection, entity)
+							if nil==err{
+								return entity
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return "false" // custom response
 }

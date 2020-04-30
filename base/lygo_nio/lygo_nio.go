@@ -10,7 +10,7 @@ import (
 //	t y p e s
 //----------------------------------------------------------------------------------------------------------------------
 
-const KEY_LEN = 1024*3
+const KEY_LEN = 1024 * 3
 
 var (
 	HANDSHAKE = &NioMessage{
@@ -33,6 +33,8 @@ func serialize(data interface{}) []byte {
 	if nil != data {
 		if v, b := data.([]byte); b {
 			return v
+		} else if v, b := data.(string); b {
+			return []byte(v)
 		}
 		return lygo_json.Bytes(data)
 	}

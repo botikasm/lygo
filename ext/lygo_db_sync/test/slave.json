@@ -22,14 +22,7 @@
           "local_collection": "coll_slave",
           "remote_collection": "coll_master",
           "command": {
-            "filter": "",
-            "select": "FOR doc IN @@collection FILTER (doc._db_sync_last==NULL) UPDATE doc WITH { \"_db_sync_last\":@timestamp } IN @@collection RETURN NEW",
-            "select_params": {
-              "@collection": "$collection",
-              "timestamp": "$timestamp",
-              "now": "$now"
-            },
-            "update": ""
+            "filter": ""
           }
         }
       ]

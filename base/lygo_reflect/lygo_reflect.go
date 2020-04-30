@@ -31,6 +31,18 @@ func Equals(item1, item2 interface{}) bool {
 	return Compare(item1, item2) == 0
 }
 
+func IsZero(item interface{}) bool {
+	if nil != item {
+		i := lygo_conv.ToIntDef(item, -1)
+		if i == 0 {
+			return true
+		} else {
+			return len(lygo_conv.ToString(item)) == 0
+		}
+	}
+	return true
+}
+
 func IsGreater(item1, item2 interface{}) bool {
 	return Compare(item1, item2) > 0
 }

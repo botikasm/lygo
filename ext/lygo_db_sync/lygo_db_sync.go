@@ -38,15 +38,16 @@ type DBSyncDriver interface {
 	BuildQuery(collection string, filter string, params map[string]interface{}) string
 	Collection(database, collection string) (bool, error)
 	Execute(database string, query string, params map[string]interface{}) ([]interface{}, error)
+	SetNeedUpdateFlag(database, collection string, raw_entity interface{}) error
+	Merge(database, collection string, item map[string]interface{}) (map[string]interface{}, error)
 }
 
 type DBSyncMessage struct {
-	UID        string
-	Driver     string
-	Database   string
-	Collection string
-	UniqueKey  []string
-	Data       interface{}
+	UID        string      `json:"uid"` //  client uid
+	Driver     string      `json:"driver"`
+	Database   string      `json:"database"`
+	Collection string      `json:"collection"`
+	Data       interface{} `json:"data"`
 }
 
 type DBSync struct {
@@ -58,7 +59,7 @@ type DBSync struct {
 	ticker       *lygo_events.EventTicker
 	conn         DBSyncNetConnection
 	errorHandler func(sender *DBSync, err error)
-	syncHandler  func(message *DBSyncMessage)
+	syncHandler  func(message *DBSyncMessage) map[string]interface{}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -99,7 +100,7 @@ func (instance *DBSync) OnError(callback func(sender *DBSync, err error)) {
 		instance.errorHandler = callback
 	}
 }
-func (instance *DBSync) OnSync(callback func(message *DBSyncMessage)) {
+func (instance *DBSync) OnSync(callback func(message *DBSyncMessage) map[string]interface{}) {
 	if nil != instance {
 		instance.syncHandler = callback
 	}
@@ -141,7 +142,6 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 			for _, action := range instance.config.Actions {
 				localCollection := action.LocalCollection
 				filter := action.Filter
-				uniqueKey := action.UniqueKey // unique key index (need to update an existing record)
 				// ensure collection exists
 				if _, err := driver.Collection(localDb, localCollection); nil == err {
 					// prepare query
@@ -154,7 +154,22 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 						instance.triggerError("driver.Execute", err.Error())
 					} else if len(localData) > 0 {
 						for _, item := range localData {
-							instance.sync(driverName, instance.config.RemoteDBName, action.RemoteCollection, uniqueKey, item)
+							syncResp := instance.sync(driverName, instance.config.RemoteDBName, action.RemoteCollection, item)
+							if nil == syncResp {
+								// ROLLBACK
+								// sync error
+								// should rollback transaction
+								err = driver.SetNeedUpdateFlag(localDb, localCollection, item)
+								if nil != err {
+									instance.triggerError("sync.Rollback", err.Error())
+								}
+							} else {
+								// UPDATE LOCAL
+								_, err = driver.Merge(localDb, localCollection, syncResp)
+								if nil != err {
+									instance.triggerError("driver.Merge", err.Error())
+								}
+							}
 						}
 						// fmt.Println(instance.UID, len(localData))
 					}
@@ -166,18 +181,18 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 	}
 }
 
-func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, uniqueKey []string, data interface{}) {
+func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, data interface{}) map[string]interface{} {
 	if nil != instance.syncHandler {
 		message := &DBSyncMessage{
 			UID:        instance.UID,
 			Driver:     driver,
 			Database:   remoteDatabase,
 			Collection: remoteCollection,
-			UniqueKey:  uniqueKey,
 			Data:       data,
 		}
-		instance.syncHandler(message)
+		return instance.syncHandler(message)
 	}
+	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -1,7 +1,10 @@
 package lygo_db_sync
 
 import (
+	"errors"
 	"github.com/arangodb/go-driver"
+	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_reflect"
 	"github.com/botikasm/lygo/ext/lygo_db/lygo_db_arango"
 	"strings"
 )
@@ -71,6 +74,18 @@ func (instance *DBSyncDriverArango) Close() error {
 	return nil
 }
 
+func (instance *DBSyncDriverArango) Collection(database, collection string) (bool, error) {
+	if nil != instance {
+		db, err := instance.conn.Database(database, true)
+		if nil != err {
+			return false, err
+		}
+		_, err = db.CollectionAutoCreate(collection)
+		return nil == err, err
+	}
+	return false, nil
+}
+
 // FOR doc IN @@collection FILTER (doc._db_sync_last==NULL) UPDATE doc WITH { "_db_sync_last":@timestamp } IN @@collection RETURN NEW
 func (instance *DBSyncDriverArango) BuildQuery(collection string, filter string, params map[string]interface{}) string {
 	response := strings.Replace(TplQueryLocal, "@@collection", collection, -1)
@@ -82,18 +97,6 @@ func (instance *DBSyncDriverArango) BuildQuery(collection string, filter string,
 	response = strings.Replace(response, "$FLD_FLAG", FLD_FLAG, -1)
 	response = strings.Replace(response, "$FLD_TIMESTAMP", FLD_TIMESTAMP, -1)
 	return response
-}
-
-func (instance *DBSyncDriverArango) Collection(database, collection string) (bool, error) {
-	if nil != instance {
-		db, err := instance.conn.Database(database, true)
-		if nil != err {
-			return false, err
-		}
-		_, err = db.CollectionAutoCreate(collection)
-		return nil == err, err
-	}
-	return false, nil
 }
 
 func (instance *DBSyncDriverArango) Execute(database string, query string, params map[string]interface{}) ([]interface{}, error) {
@@ -114,6 +117,69 @@ func (instance *DBSyncDriverArango) Execute(database string, query string, param
 		return response, err
 	}
 	return nil, nil
+}
+
+func (instance *DBSyncDriverArango) Merge(database, collection string, item map[string]interface{}) (map[string]interface{}, error) {
+	if nil != instance {
+		db, err := instance.conn.Database(database, true)
+		if nil != err {
+			return nil, err
+		}
+		coll, err := db.Collection(collection, true)
+		if nil == err {
+			key := item["_key"].(string)
+			if v, _ := coll.Exists(key); v && len(key) > 0 {
+				// get existing
+				existing, _, err := coll.Read(key)
+				if nil != err {
+					return nil, err
+				}
+				// merge existing (avoid override fields with zero values)
+				for k, v := range item {
+					if k != "_key" {
+						if lygo_reflect.IsZero(existing[k]) {
+							existing[k] = v
+						} else if !lygo_reflect.IsZero(v) {
+							existing[k] = v
+						}
+					}
+				}
+				// UPDATE
+				response, _, err := coll.Update(existing)
+				return response, err
+			} else {
+				// INSERT
+				response, _, err := coll.Insert(item)
+				return response, err
+			}
+		}
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (instance *DBSyncDriverArango) SetNeedUpdateFlag(database, collection string, raw_entity interface{}) error {
+	if nil != instance {
+		entity := lygo_conv.ForceMap(raw_entity)
+		if nil != entity {
+			entity[FLD_FLAG] = true
+			db, err := instance.conn.Database(database, true)
+			if nil != err {
+				return err
+			}
+			coll, err := db.Collection(collection, true)
+			if nil != err {
+				return err
+			}
+			if nil != coll {
+				_, _, err = coll.Upsert(entity)
+				return err
+			}
+		} else {
+			return errors.New("entity_not_valid")
+		}
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------

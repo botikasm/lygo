@@ -42,7 +42,6 @@ type DBSyncConfigSyncAction struct {
 	LocalCollection  string   `json:"local_collection"`
 	RemoteCollection string   `json:"remote_collection"`
 	Filter           string   `json:"filter"`
-	UniqueKey        []string `json:"unique_key"`
 }
 
 //----------------------------------------------------------------------------------------------------------------------

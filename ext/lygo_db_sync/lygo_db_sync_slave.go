@@ -1,11 +1,12 @@
 package lygo_db_sync
 
 import (
-	"fmt"
 	"github.com/botikasm/lygo/base/lygo_events"
+	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"github.com/botikasm/lygo/base/lygo_sys"
 	"github.com/botikasm/lygo/ext/lygo_logs"
+	"strings"
 	"sync"
 )
 
@@ -70,6 +71,30 @@ func (instance *DBSyncSlave) Join() {
 	}
 }
 
+func (instance *DBSyncSlave) OnConnect(callback func(e *lygo_events.Event)) {
+	if nil != instance {
+		instance.events.On("connect", callback)
+	}
+}
+
+func (instance *DBSyncSlave) OffConnect() {
+	if nil != instance {
+		instance.events.Off("connect")
+	}
+}
+
+func (instance *DBSyncSlave) OnDisconnect(callback func(e *lygo_events.Event)) {
+	if nil != instance {
+		instance.events.On("disconnect", callback)
+	}
+}
+
+func (instance *DBSyncSlave) OffDisconnect() {
+	if nil != instance {
+		instance.events.Off("disconnect")
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
@@ -81,7 +106,8 @@ func (instance *DBSyncSlave) init() {
 		instance.UID, _ = lygo_sys.ID()
 	}
 	instance.client = lygo_nio.NewNioClient(instance.config.Host(), instance.config.Port())
-
+	instance.client.OnConnect(instance.onConnect)
+	instance.client.OnDisconnect(instance.onDisconnect)
 }
 
 func (instance *DBSyncSlave) startTickers() {
@@ -111,10 +137,36 @@ func (instance *DBSyncSlave) onTickerError(sender *DBSync, err error) {
 	}
 }
 
-func (instance *DBSyncSlave) onTickerSync(message *DBSyncMessage) {
+func (instance *DBSyncSlave) onConnect(e *lygo_events.Event) {
+	if nil != instance {
+		instance.events.EmitAsync(e.Name)
+	}
+}
 
-	// TODO: SEND SYNC MESSAGE TO SERVER
-	uid := instance.UID
-	fmt.Println(uid, message)
+func (instance *DBSyncSlave) onDisconnect(e *lygo_events.Event) {
+	if nil != instance {
+		instance.events.EmitAsync(e.Name)
+	}
+}
 
+func (instance *DBSyncSlave) onTickerSync(message *DBSyncMessage) map[string]interface{} {
+	if nil != instance {
+		if instance.client.IsOpen() {
+			response, err := instance.client.Send(message)
+			if nil != err {
+				lygo_logs.Error(err)
+			}
+			if nil != response {
+				s := string(response.Body.([]byte))
+				if strings.Index(s, "{")==0{
+					var entity map[string]interface{}
+					err := lygo_json.Read(s, &entity)
+					if nil==err{
+						return entity
+					}
+				}
+			}
+		}
+	}
+	return nil // rollback transaction
 }
