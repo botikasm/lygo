@@ -71,6 +71,18 @@ func (instance *DBSyncSlave) Join() {
 	}
 }
 
+func (instance *DBSyncSlave) OnError(callback func(e *lygo_events.Event)) {
+	if nil != instance {
+		instance.events.On("error", callback)
+	}
+}
+
+func (instance *DBSyncSlave) OffError() {
+	if nil != instance {
+		instance.events.Off("error")
+	}
+}
+
 func (instance *DBSyncSlave) OnConnect(callback func(e *lygo_events.Event)) {
 	if nil != instance {
 		instance.events.On("connect", callback)
@@ -106,16 +118,16 @@ func (instance *DBSyncSlave) init() {
 		instance.UID, _ = lygo_sys.ID()
 	}
 	instance.client = lygo_nio.NewNioClient(instance.config.Host(), instance.config.Port())
-	instance.client.OnConnect(instance.onConnect)
-	instance.client.OnDisconnect(instance.onDisconnect)
+	instance.client.OnConnect(instance.doConnect)
+	instance.client.OnDisconnect(instance.doDisconnect)
 }
 
 func (instance *DBSyncSlave) startTickers() {
 	items := instance.config.Sync
 	for _, config := range items {
 		ticker := NewDBSync(instance.UID, instance.client, instance.config.Database, config)
-		ticker.OnError(instance.onTickerError)
-		ticker.OnSync(instance.onTickerSync)
+		ticker.OnError(instance.onActionSyncError)
+		ticker.OnSync(instance.onActionSync)
 		instance.tickers = append(instance.tickers, ticker)
 		_ = ticker.Open()
 	}
@@ -127,29 +139,36 @@ func (instance *DBSyncSlave) stopTickers() {
 	}
 }
 
-func (instance *DBSyncSlave) onTickerError(sender *DBSync, err error) {
+func (instance *DBSyncSlave) doError(err error) {
+	if nil != instance {
+		instance.events.EmitAsync("error", err)
+	}
+}
+
+func (instance *DBSyncSlave) doConnect(e *lygo_events.Event) {
+	if nil != instance {
+		instance.events.EmitAsync(e.Name)
+	}
+}
+
+func (instance *DBSyncSlave) doDisconnect(e *lygo_events.Event) {
+	if nil != instance {
+		instance.events.EmitAsync(e.Name)
+	}
+}
+
+func (instance *DBSyncSlave) onActionSyncError(sender *DBSync, err error) {
 	if nil != instance {
 		instance.mux.Lock()
 		defer instance.mux.Unlock()
 
 		// fmt.Println(err)
 		lygo_logs.Error(err)
+		instance.doError(err)
 	}
 }
 
-func (instance *DBSyncSlave) onConnect(e *lygo_events.Event) {
-	if nil != instance {
-		instance.events.EmitAsync(e.Name)
-	}
-}
-
-func (instance *DBSyncSlave) onDisconnect(e *lygo_events.Event) {
-	if nil != instance {
-		instance.events.EmitAsync(e.Name)
-	}
-}
-
-func (instance *DBSyncSlave) onTickerSync(message *DBSyncMessage) map[string]interface{} {
+func (instance *DBSyncSlave) onActionSync(message *DBSyncMessage) map[string]interface{} {
 	if nil != instance {
 		if instance.client.IsOpen() {
 			response, err := instance.client.Send(message)
@@ -158,10 +177,10 @@ func (instance *DBSyncSlave) onTickerSync(message *DBSyncMessage) map[string]int
 			}
 			if nil != response {
 				s := string(response.Body.([]byte))
-				if strings.Index(s, "{")==0{
+				if strings.Index(s, "{") == 0 {
 					var entity map[string]interface{}
 					err := lygo_json.Read(s, &entity)
-					if nil==err{
+					if nil == err {
 						return entity
 					}
 				}
