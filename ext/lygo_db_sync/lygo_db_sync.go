@@ -5,6 +5,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/pkg/errors"
+	"sync"
 	"time"
 )
 
@@ -60,19 +61,21 @@ type DBSync struct {
 	conn         DBSyncNetConnection
 	errorHandler func(sender *DBSync, err error)
 	syncHandler  func(message *DBSyncMessage) map[string]interface{}
+	mux          *sync.Mutex
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewDBSync(uid string, conn DBSyncNetConnection, dbConfig *DBSyncDatabaseConfig, config *DBSyncConfigSync) *DBSync {
+func NewDBSync(uid string, conn DBSyncNetConnection, dbConfig *DBSyncDatabaseConfig, config *DBSyncConfigSync, mux *sync.Mutex) *DBSync {
 	instance := new(DBSync)
 	instance.UID = uid
 	instance.dbConfig = dbConfig
 	instance.config = config
 	instance.conn = conn
 	instance.ticker = lygo_events.NewEventTicker(config.Interval*time.Second, instance.onLoop)
+	instance.mux = mux
 
 	return instance
 }
@@ -110,9 +113,9 @@ func (instance *DBSync) OnSync(callback func(message *DBSyncMessage) map[string]
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *DBSync) triggerError(context, message string) {
+func (instance *DBSync) triggerErrorAsync(context, message string) {
 	if nil != instance.errorHandler {
-		instance.errorHandler(instance, errors.New("["+context+"] "+message))
+		go instance.errorHandler(instance, errors.New("["+context+"] "+message))
 	} else {
 		fmt.Println(message)
 	}
@@ -124,9 +127,13 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 		if r := recover(); r != nil {
 			// recovered from panic
 			message := lygo_strings.Format("TICKER %s ERROR: %s", instance.config.Uid, r)
-			instance.triggerError("lygo_db_sync.onLoop", message)
+			instance.triggerErrorAsync("lygo_db_sync.onLoop", message)
 		}
 	}()
+
+	// synchronize
+	instance.mux.Lock()
+	defer instance.mux.Unlock()
 
 	// only if connection is open
 	if !instance.conn.IsOpen() {
@@ -151,7 +158,7 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 					localQuery := driver.BuildQuery(localCollection, filter, params)
 					localData, err := driver.Execute(localDb, localQuery, params)
 					if nil != err {
-						instance.triggerError("driver.Execute", err.Error())
+						instance.triggerErrorAsync("driver.Execute", err.Error())
 					} else if len(localData) > 0 {
 						for _, item := range localData {
 							syncResp := instance.sync(driverName, instance.config.RemoteDBName, action.RemoteCollection, item)
@@ -161,13 +168,13 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 								// should rollback transaction
 								err = driver.SetNeedUpdateFlag(localDb, localCollection, item)
 								if nil != err {
-									instance.triggerError("sync.Rollback", err.Error())
+									instance.triggerErrorAsync("sync.Rollback", err.Error())
 								}
 							} else {
 								// UPDATE LOCAL
 								_, err = driver.Merge(localDb, localCollection, syncResp)
 								if nil != err {
-									instance.triggerError("driver.Merge", err.Error())
+									instance.triggerErrorAsync("driver.Merge", err.Error())
 								}
 							}
 						}
@@ -176,7 +183,7 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 				}
 			}
 		} else {
-			instance.triggerError("driver.Open", err.Error())
+			instance.triggerErrorAsync("driver.Open", err.Error())
 		}
 	}
 }

@@ -16,8 +16,9 @@ import (
 const (
 	TplQueryLocal = "FOR doc IN @@collection " +
 		"FILTER (doc.$FLD_FLAG==NULL || doc.$FLD_FLAG==true) $FILTER" +
+		// "LIMIT 1000 " +
 		"UPDATE doc WITH { $FLD_FLAG:false, $FLD_TIMESTAMP:@timestamp } " +
-		"IN @@collection " +
+		"IN @@collection OPTIONS { ignoreErrors: true } " +
 		"RETURN NEW"
 )
 

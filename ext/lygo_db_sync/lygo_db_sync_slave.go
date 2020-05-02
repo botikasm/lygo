@@ -125,7 +125,7 @@ func (instance *DBSyncSlave) init() {
 func (instance *DBSyncSlave) startTickers() {
 	items := instance.config.Sync
 	for _, config := range items {
-		ticker := NewDBSync(instance.UID, instance.client, instance.config.Database, config)
+		ticker := NewDBSync(instance.UID, instance.client, instance.config.Database, config, &instance.mux)
 		ticker.OnError(instance.onActionSyncError)
 		ticker.OnSync(instance.onActionSync)
 		instance.tickers = append(instance.tickers, ticker)
