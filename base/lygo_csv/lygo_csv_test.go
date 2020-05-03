@@ -35,3 +35,29 @@ Ken;Thompson;ken
 	}
 	fmt.Println(data)
 }
+
+func TestHeaders(t *testing.T) {
+
+	in := `first_name;last_name;username
+"Rob";"Pike";rob
+# lines beginning with a # character are ignored
+Ken;Thompson;ken`
+
+	options := NewCsvOptionsDefaults()
+	options.FirstRowHeader = true
+
+	data, err := ReadAll(in, options)
+	if nil != err {
+		t.Error(err)
+		t.Fail()
+	}
+	fmt.Println("rows", len(data), data)
+
+	options.FirstRowHeader = false
+	data, err = ReadAll(in, options)
+	if nil != err {
+		t.Error(err)
+		t.Fail()
+	}
+	fmt.Println("rows", len(data), data)
+}
