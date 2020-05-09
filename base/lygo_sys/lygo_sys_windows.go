@@ -17,7 +17,7 @@ import (
 
 func shutdown(adminPsw string) error {
 	// cmd := "shutdown -s -t O"
-	if err := exec.Command("cmd", "shutdown", "-s", "-t", "O").Run(); err != nil {
+	if err := exec.Command("cmd", "/C", "shutdown", "-s", "-t", "0").Run(); err != nil {
 		//fmt.Println("Failed to initiate shutdown:", err)
 		return err
 	}
