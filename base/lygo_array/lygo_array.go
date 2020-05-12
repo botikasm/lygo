@@ -156,6 +156,40 @@ func AppendUnique(target interface{}, source interface{}) interface{} {
 				vt = reflect.Append(vt, vsv)
 			}
 		}
+	} else {
+		if IndexOf(source, target) == -1 {
+			vt = reflect.Append(vt, reflect.ValueOf(source))
+		}
+	}
+	return vt.Interface()
+}
+
+func AppendUniqueFunc(target interface{}, source interface{}, callback func(t interface{}, s interface{}) bool) interface{} {
+	if nil == callback {
+		return target
+	}
+	vt := lygo_reflect.ValueOf(target) // value of target
+	vs := lygo_reflect.ValueOf(source) // value of source
+	if vt.Kind() == reflect.Slice && vs.Kind() == reflect.Slice {
+		for i := 0; i < vs.Len(); i++ {
+			sourceItem := vs.Index(i) // source item
+			for ii := 0; ii < vt.Len(); ii++ {
+				targetItem := vt.Index(ii) // target item
+				addThis := callback(targetItem.Interface(), sourceItem.Interface())
+				if addThis {
+					vt = reflect.Append(vt, sourceItem)
+				}
+			}
+		}
+	} else if vt.Kind() == reflect.Slice && (vs.Kind() == reflect.Struct || vs.Kind() == reflect.Map) {
+		for ii := 0; ii < vt.Len(); ii++ {
+			targetItem := vt.Index(ii) // target item
+			addThis := callback(targetItem.Interface(), source)
+			if addThis {
+				vt = reflect.Append(vt, reflect.ValueOf(source))
+				break
+			}
+		}
 	}
 	return vt.Interface()
 }
