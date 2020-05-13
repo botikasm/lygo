@@ -7,5 +7,5 @@ Depends on **lygo_http** that uses fasthttp.
 Library: [FastHttp](https://github.com/valyala/fasthttp)
 
 ### Install
-`dep ensure -add github.com/valyala/fasthttp`
-`dep ensure -add github.com/valyala/fasthttp/reuseport`
+`go get -u github.com/valyala/fasthttp`
+`go get -u github.com/valyala/fasthttp/reuseport`

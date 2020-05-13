@@ -9,13 +9,13 @@ import (
 	"strings"
 )
 
-const TEMP = "./_temp"
-
 //----------------------------------------------------------------------------------------------------------------------
 //	f i e l d s
 //----------------------------------------------------------------------------------------------------------------------
 
 var _workspace string = lygo.DEF_WORKSPACE
+var _temp_root string = lygo.DEF_TEMP
+var _pathSeparator = string(os.PathSeparator)
 
 //----------------------------------------------------------------------------------------------------------------------
 //	i n i t
@@ -49,7 +49,11 @@ func WorkspacePath(partial string) string {
 }
 
 func GetTempRoot() string {
-	return Absolute(TEMP)
+	return Absolute(_temp_root)
+}
+
+func SetTempRoot(path string) {
+	_temp_root = Absolute(path)
 }
 
 func Concat(paths ...string) string {
@@ -115,7 +119,7 @@ func Mkdir(path string) (err error) {
 			abs = filepath.Dir(abs)
 		}
 
-		if !strings.HasSuffix(abs, string(os.PathSeparator)) {
+		if !strings.HasSuffix(abs, _pathSeparator) {
 			path = abs + string(os.PathSeparator)
 		} else {
 			path = abs
@@ -129,6 +133,17 @@ func Mkdir(path string) (err error) {
 	}
 
 	return err
+}
+
+func IsTemp(path string) bool {
+	tokens := strings.Split(path, _pathSeparator)
+	temp := FileName(_temp_root, false)
+	for _, token := range tokens {
+		if token == temp {
+			return true
+		}
+	}
+	return false
 }
 
 func IsDir(path string) (bool, error) {
@@ -146,7 +161,7 @@ func IsFile(path string) (bool, error) {
 		if len(filepath.Ext(path)) > 0 {
 			return true, nil
 		}
-		if strings.HasSuffix(path, string(os.PathSeparator)) {
+		if strings.HasSuffix(path, _pathSeparator) {
 			// is a directory
 			return false, err
 		}
@@ -216,7 +231,7 @@ func TmpFileName(extension string) string {
 }
 
 func TmpFile(extension string) string {
-	path := filepath.Join(TEMP, TmpFileName(extension))
+	path := filepath.Join(_temp_root, TmpFileName(extension))
 	return Absolute(path)
 }
 

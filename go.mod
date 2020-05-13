@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/arangodb/go-driver v0.0.0-20200403100147-ca5dd87ffe93
 	github.com/arangodb/go-velocypack v0.0.0-20200318135517-5af53c29c67e
+	github.com/cbroglie/mustache v1.0.1
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/dop251/goja v0.0.0-20200414142002-77e84ffb8c65
 	github.com/dop251/goja_nodejs v0.0.0-20200128125109-2d688c7e0ac4
@@ -27,6 +28,7 @@ require (
 	github.com/savsgio/gotils v0.0.0-20200413113635-8c468ce75cca // indirect
 	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.5.1
+	github.com/unidoc/unioffice v1.3.0
 	github.com/valyala/fasthttp v1.11.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
