@@ -1,6 +1,7 @@
 package lygo_db_sync
 
 import (
+	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"sync"
@@ -11,9 +12,9 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type DBSyncMaster struct {
+	Config *DBSyncConfig
 
 	//-- private --//
-	config *DBSyncConfig
 	server *lygo_nio.NioServer
 	mux    sync.Mutex // global mutex to synchronize updates
 }
@@ -24,9 +25,7 @@ type DBSyncMaster struct {
 
 func NewDBSyncMaster(config *DBSyncConfig) *DBSyncMaster {
 	instance := new(DBSyncMaster)
-	instance.config = config
-	instance.init()
-
+	instance.Config = config
 	return instance
 }
 
@@ -36,6 +35,9 @@ func NewDBSyncMaster(config *DBSyncConfig) *DBSyncMaster {
 
 func (instance *DBSyncMaster) Open() error {
 	if nil != instance {
+		// init server
+		instance.init()
+		// open server
 		err := instance.server.Open()
 		if nil != err {
 			return err
@@ -65,8 +67,10 @@ func (instance *DBSyncMaster) Join() {
 //----------------------------------------------------------------------------------------------------------------------
 
 func (instance *DBSyncMaster) init() {
-	instance.server = lygo_nio.NewNioServer(instance.config.Port())
-	instance.server.OnMessage(instance.onMessage)
+	if nil != instance && nil == instance.server {
+		instance.server = lygo_nio.NewNioServer(instance.Config.Port())
+		instance.server.OnMessage(instance.onMessage)
+	}
 }
 
 func (instance *DBSyncMaster) onMessage(message *lygo_nio.NioMessage) interface{} {
@@ -77,19 +81,29 @@ func (instance *DBSyncMaster) onMessage(message *lygo_nio.NioMessage) interface{
 		var body DBSyncMessage
 		err := lygo_json.Read(v, &body)
 		if nil == err {
-			driver := GetDriver(body.Driver, instance.config.Database)
+			driver := GetDriver(body.Driver, instance.Config.Database)
 			if nil != driver {
 				err := driver.Open()
-				if nil==err{
+				if nil == err {
 					uid := body.UID
 					database := body.Database
 					collection := body.Collection
-					item := body.Data
-					if nil != item && len(uid) > 0 && len(database) > 0 && len(collection) > 0 {
-						if entity,b:=item.(map[string]interface{});b{
-							entity, err = driver.Merge(database, collection, entity)
-							if nil==err{
-								return entity
+					if nil != body.Data && len(uid) > 0 && len(database) > 0 && len(collection) > 0 {
+						if b, _ := lygo_conv.IsString(body.Data); b {
+							// query to return beck
+							query := lygo_conv.ToString(body.Data)
+							response, err := driver.Execute(database, query, nil)
+							if nil == err {
+								return response
+							}
+						} else {
+							// single item to update
+							item := body.Data
+							if entity, b := item.(map[string]interface{}); b {
+								entity, err = driver.Merge(database, collection, entity)
+								if nil == err {
+									return entity
+								}
 							}
 						}
 					}

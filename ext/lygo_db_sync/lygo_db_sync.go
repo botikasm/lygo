@@ -17,6 +17,7 @@ const DRIVER_ARANGO = "arango"
 
 //-- DB-SYNC FIELDS --//
 const (
+	FLD_UUID      = "_db_sync_uuid" // client UID
 	FLD_FLAG      = "_db_sync_flag" // if equals true, record is synchronized
 	FLD_TIMESTAMP = "_db_sync_timestamp"
 )
@@ -24,6 +25,8 @@ const (
 //-- ERRORS --//
 var (
 	MissingDatabaseConfigurationError = errors.New("missing_database_configuration")
+	ConnectionIsClosedError           = errors.New("connection_is_closed")
+	DriverNotFoundError               = errors.New("driver_not_found")
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,6 +40,7 @@ type DBSyncDriver interface {
 	Open() error
 	Close() error
 	BuildQuery(collection string, filter string, params map[string]interface{}) string
+	BuildQueryReverse(collection string, filter string, params map[string]interface{}) string
 	Collection(database, collection string) (bool, error)
 	Execute(database string, query string, params map[string]interface{}) ([]interface{}, error)
 	SetNeedUpdateFlag(database, collection string, raw_entity interface{}) error
@@ -60,7 +64,7 @@ type DBSync struct {
 	ticker       *lygo_events.EventTicker
 	conn         DBSyncNetConnection
 	errorHandler func(sender *DBSync, err error)
-	syncHandler  func(message *DBSyncMessage) map[string]interface{}
+	syncHandler  func(message *DBSyncMessage) []map[string]interface{}
 	mux          *sync.Mutex
 }
 
@@ -98,12 +102,33 @@ func (instance *DBSync) Close() error {
 	return nil
 }
 
+func (instance *DBSync) Pause() error {
+	if nil != instance {
+		instance.ticker.Pause()
+	}
+	return nil
+}
+
+func (instance *DBSync) Resume() error {
+	if nil != instance {
+		instance.ticker.Resume()
+	}
+	return nil
+}
+
+func (instance *DBSync) ReverseSync() (int64, error) {
+	if nil != instance {
+		return instance.reverseSync()
+	}
+	return 0, nil
+}
+
 func (instance *DBSync) OnError(callback func(sender *DBSync, err error)) {
 	if nil != instance {
 		instance.errorHandler = callback
 	}
 }
-func (instance *DBSync) OnSync(callback func(message *DBSyncMessage) map[string]interface{}) {
+func (instance *DBSync) OnSync(callback func(message *DBSyncMessage) []map[string]interface{}) {
 	if nil != instance {
 		instance.syncHandler = callback
 	}
@@ -153,6 +178,7 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 				if _, err := driver.Collection(localDb, localCollection); nil == err {
 					// prepare query
 					params := map[string]interface{}{
+						"uuid":      instance.UID,
 						"timestamp": time.Now().Unix(),
 					}
 					localQuery := driver.BuildQuery(localCollection, filter, params)
@@ -162,7 +188,7 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 					} else if len(localData) > 0 {
 						for _, item := range localData {
 							syncResp := instance.sync(driverName, instance.config.RemoteDBName, action.RemoteCollection, item)
-							if nil == syncResp {
+							if nil == syncResp || len(syncResp) == 0 {
 								// ROLLBACK
 								// sync error
 								// should rollback transaction
@@ -172,9 +198,11 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 								}
 							} else {
 								// UPDATE LOCAL
-								_, err = driver.Merge(localDb, localCollection, syncResp)
-								if nil != err {
-									instance.triggerErrorAsync("driver.Merge", err.Error())
+								for _, entity := range syncResp {
+									_, err = driver.Merge(localDb, localCollection, entity)
+									if nil != err {
+										instance.triggerErrorAsync("driver.Merge", err.Error())
+									}
 								}
 							}
 						}
@@ -188,7 +216,7 @@ func (instance *DBSync) onLoop(ticker *lygo_events.EventTicker) {
 	}
 }
 
-func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, data interface{}) map[string]interface{} {
+func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, data interface{}) []map[string]interface{} {
 	if nil != instance.syncHandler {
 		message := &DBSyncMessage{
 			UID:        instance.UID,
@@ -200,6 +228,72 @@ func (instance *DBSync) sync(driver, remoteDatabase, remoteCollection string, da
 		return instance.syncHandler(message)
 	}
 	return nil
+}
+
+func (instance *DBSync) syncBack(driver, remoteDatabase, remoteCollection string, remoteQuery string) []map[string]interface{} {
+	return instance.sync(driver, remoteDatabase, remoteCollection, remoteQuery)
+}
+
+func (instance *DBSync) reverseSync() (int64, error) {
+	var count int64 = 0
+	// synchronize
+	instance.mux.Lock()
+	defer instance.mux.Unlock()
+
+	// only if connection is open
+	if !instance.conn.IsOpen() {
+		return 0, ConnectionIsClosedError
+	}
+
+	driverName := instance.dbConfig.Driver
+	driver := GetDriver(driverName, instance.dbConfig)
+	if nil != driver {
+		err := driver.Open()
+		if nil == err {
+			localDb := instance.config.LocalDBName
+			for _, action := range instance.config.Actions {
+				localCollection := action.LocalCollection
+				filter := action.Filter
+				// ensure collection exists
+				if _, err := driver.Collection(localDb, localCollection); nil == err {
+					params := map[string]interface{}{
+						"uuid":  instance.UID,
+						"skip":  0,
+						"limit": 100,
+					}
+					skip := 0
+					for {
+						params["skip"] = skip
+						skip += 100
+						// paged query
+						remoteQuery := driver.BuildQueryReverse(action.RemoteCollection, filter, params)
+						remoteData := instance.syncBack(driverName, instance.config.RemoteDBName, action.RemoteCollection, remoteQuery)
+						if nil != err || nil == remoteData || len(remoteData) == 0 {
+							break
+						}
+						// update items
+						for _, entity := range remoteData {
+							if nil != entity {
+								_, err = driver.Merge(localDb, localCollection, entity)
+								if nil != err {
+									instance.triggerErrorAsync("driver.Merge", err.Error())
+									break
+								} else {
+									count++
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			return count, err
+		}
+	} else {
+		return count, errors.WithMessage(DriverNotFoundError, driverName)
+	}
+
+	return count, nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -96,6 +96,15 @@ func ToString(val interface{}) string {
 	// undefined value
 	return fmt.Sprintf("%v", val)
 }
+func ToStringQuoted(val interface{}) string {
+	response := ToString(val)
+	if _, b := val.(string);b{
+		if strings.Index(response, "\"")==-1{
+			response = strconv.Quote(response)
+		}
+	}
+	return response
+}
 
 func Int8ToStr(arr []int8) string {
 	b := make([]byte, 0, len(arr))

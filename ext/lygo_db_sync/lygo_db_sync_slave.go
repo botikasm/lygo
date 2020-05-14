@@ -15,9 +15,10 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type DBSyncSlave struct {
-	UID string
+	UID    string
+	Config *DBSyncConfig
+
 	//-- private --//
-	config  *DBSyncConfig
 	client  *lygo_nio.NioClient
 	tickers []*DBSync
 	events  *lygo_events.Emitter
@@ -30,12 +31,9 @@ type DBSyncSlave struct {
 
 func NewDBSyncSlave(config *DBSyncConfig) *DBSyncSlave {
 	instance := new(DBSyncSlave)
-	instance.config = config
+	instance.Config = config
 	instance.tickers = make([]*DBSync, 0)
 	instance.events = lygo_events.NewEmitter()
-
-	instance.init()
-
 	return instance
 }
 
@@ -45,6 +43,9 @@ func NewDBSyncSlave(config *DBSyncConfig) *DBSyncSlave {
 
 func (instance *DBSyncSlave) Open() error {
 	if nil != instance {
+		// init client
+		instance.init()
+		// start client
 		err := instance.client.Open()
 		if nil != err {
 			return err
@@ -52,6 +53,15 @@ func (instance *DBSyncSlave) Open() error {
 		instance.startTickers()
 	}
 	return nil
+}
+
+// downloads data from server and update slave with server data
+// Return array of int64 and array of errors. One item for each collection
+func (instance *DBSyncSlave) Reverse() ([]int64, []error) {
+	if nil != instance {
+		return instance.reverseSync()
+	}
+	return nil, nil
 }
 
 func (instance *DBSyncSlave) Close() error {
@@ -112,20 +122,24 @@ func (instance *DBSyncSlave) OffDisconnect() {
 //----------------------------------------------------------------------------------------------------------------------
 
 func (instance *DBSyncSlave) init() {
-	if len(instance.config.Uuid) > 0 {
-		instance.UID = instance.config.Uuid
-	} else {
-		instance.UID, _ = lygo_sys.ID()
+	if nil != instance {
+		if len(instance.Config.Uuid) > 0 {
+			instance.UID = instance.Config.Uuid
+		} else {
+			instance.UID, _ = lygo_sys.ID()
+		}
+		if nil == instance.client {
+			instance.client = lygo_nio.NewNioClient(instance.Config.Host(), instance.Config.Port())
+			instance.client.OnConnect(instance.doConnect)
+			instance.client.OnDisconnect(instance.doDisconnect)
+		}
 	}
-	instance.client = lygo_nio.NewNioClient(instance.config.Host(), instance.config.Port())
-	instance.client.OnConnect(instance.doConnect)
-	instance.client.OnDisconnect(instance.doDisconnect)
 }
 
 func (instance *DBSyncSlave) startTickers() {
-	items := instance.config.Sync
+	items := instance.Config.Sync
 	for _, config := range items {
-		ticker := NewDBSync(instance.UID, instance.client, instance.config.Database, config, &instance.mux)
+		ticker := NewDBSync(instance.UID, instance.client, instance.Config.Database, config, &instance.mux)
 		ticker.OnError(instance.onActionSyncError)
 		ticker.OnSync(instance.onActionSync)
 		instance.tickers = append(instance.tickers, ticker)
@@ -137,6 +151,39 @@ func (instance *DBSyncSlave) stopTickers() {
 	for _, ticker := range instance.tickers {
 		_ = ticker.Close()
 	}
+}
+
+func (instance *DBSyncSlave) pauseTickers() {
+	for _, ticker := range instance.tickers {
+		_ = ticker.Pause()
+	}
+}
+
+func (instance *DBSyncSlave) resumeTickers() {
+	for _, ticker := range instance.tickers {
+		_ = ticker.Resume()
+	}
+}
+
+func (instance *DBSyncSlave) reverseSync() ([]int64, []error) {
+	// pause all tickers
+	instance.pauseTickers()
+	defer instance.resumeTickers()
+
+	errs := make([]error, 0)
+	totals := make([]int64, 0)
+	// ready for slave update
+	for _, ticker := range instance.tickers {
+		count, err := ticker.ReverseSync()
+		if nil != err {
+			errs = append(errs, err)
+			totals = append(totals, 0)
+		} else {
+			errs = append(errs, nil)
+			totals = append(totals, count)
+		}
+	}
+	return totals, errs
 }
 
 func (instance *DBSyncSlave) doError(err error) {
@@ -168,7 +215,7 @@ func (instance *DBSyncSlave) onActionSyncError(sender *DBSync, err error) {
 	}
 }
 
-func (instance *DBSyncSlave) onActionSync(message *DBSyncMessage) map[string]interface{} {
+func (instance *DBSyncSlave) onActionSync(message *DBSyncMessage) []map[string]interface{} {
 	if nil != instance {
 		if instance.client.IsOpen() {
 			response, err := instance.client.Send(message)
@@ -181,7 +228,13 @@ func (instance *DBSyncSlave) onActionSync(message *DBSyncMessage) map[string]int
 					var entity map[string]interface{}
 					err := lygo_json.Read(s, &entity)
 					if nil == err {
-						return entity
+						return []map[string]interface{}{entity}
+					}
+				} else if strings.Index(s, "[") == 0 {
+					var entities []map[string]interface{}
+					err := lygo_json.Read(s, &entities)
+					if nil == err {
+						return entities
 					}
 				}
 			}

@@ -17,9 +17,13 @@ const (
 	TplQueryLocal = "FOR doc IN @@collection " +
 		"FILTER (doc.$FLD_FLAG==NULL || doc.$FLD_FLAG==true) $FILTER" +
 		// "LIMIT 1000 " +
-		"UPDATE doc WITH { $FLD_FLAG:false, $FLD_TIMESTAMP:@timestamp } " +
+		"UPDATE doc WITH { $FLD_FLAG:false, $FLD_TIMESTAMP:@timestamp, $FLD_UUID:@uuid } " +
 		"IN @@collection OPTIONS { ignoreErrors: true } " +
 		"RETURN NEW"
+	TplQueryReverse = "FOR doc IN @@collection " +
+		"FILTER doc.$FLD_UUID==@uuid $FILTER" +
+		"LIMIT @skip, @limit " +
+		"RETURN doc"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -97,6 +101,25 @@ func (instance *DBSyncDriverArango) BuildQuery(collection string, filter string,
 	}
 	response = strings.Replace(response, "$FLD_FLAG", FLD_FLAG, -1)
 	response = strings.Replace(response, "$FLD_TIMESTAMP", FLD_TIMESTAMP, -1)
+	response = strings.Replace(response, "$FLD_UUID", FLD_UUID, -1)
+	return response
+}
+
+func (instance *DBSyncDriverArango) BuildQueryReverse(collection string, filter string, params map[string]interface{}) string {
+	response := strings.Replace(TplQueryReverse, "@@collection", collection, -1)
+	if len(filter) > 0 {
+		response = strings.Replace(response, "$FILTER", "&& ("+filter+") ", -1)
+	} else {
+		response = strings.Replace(response, "$FILTER", filter, -1)
+	}
+	response = strings.Replace(response, "$FLD_FLAG", FLD_FLAG, -1)
+	response = strings.Replace(response, "$FLD_TIMESTAMP", FLD_TIMESTAMP, -1)
+	response = strings.Replace(response, "$FLD_UUID", FLD_UUID, -1)
+	response = strings.Replace(response, "@@collection", collection, -1)
+	for k, v := range params {
+		response = strings.Replace(response, "@"+k, lygo_conv.ToStringQuoted(v), -1)
+	}
+
 	return response
 }
 
