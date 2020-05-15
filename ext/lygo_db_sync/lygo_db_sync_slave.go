@@ -43,14 +43,14 @@ func NewDBSyncSlave(config *DBSyncConfig) *DBSyncSlave {
 
 func (instance *DBSyncSlave) Open() error {
 	if nil != instance {
+		var err error
 		// init client
 		instance.init()
 		// start client
-		err := instance.client.Open()
-		if nil != err {
-			return err
-		}
+		err = instance.client.Open()
+		// start tickers also if server is offline
 		instance.startTickers()
+		return err
 	}
 	return nil
 }
