@@ -49,7 +49,7 @@ func EncryptTextWithPrefix(text string, key []byte) (string, error) {
 		if nil!=err{
 			return "", err
 		}
-		return "enc-" + string(data), nil
+		return "enc-" + EncodeBase64(data), nil
 	}
 	return text, nil
 }
@@ -57,7 +57,11 @@ func EncryptTextWithPrefix(text string, key []byte) (string, error) {
 func DecryptTextWithPrefix(text string, key []byte) (string, error) {
 	if strings.Index(text, "enc-") != -1 {
 		text = text[4:]
-		data, err := DecryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
+		data, err := DecodeBase64(text)
+		if nil!=err{
+			return "", err
+		}
+		data, err = DecryptBytesAES(data, lygo_strings.FillLeftBytes(key, 32, '0'))
 		if nil!=err{
 			return "", err
 		}

@@ -16,8 +16,9 @@ func TestSessionKey(t *testing.T) {
 }
 
 func TestAESWithPrefix(t *testing.T) {
-	key:=[]byte("1234")
-	enc, err := EncryptTextWithPrefix("hola", key)
+	text := "Mario Rossi "
+	key:=[]byte("user_0001")
+	enc, err := EncryptTextWithPrefix(text, key)
 	if nil!=err{
 		t.Error(err)
 		t.FailNow()
