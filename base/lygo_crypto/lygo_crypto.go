@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/base/lygo_strings"
 	"io"
 	"strings"
 )
@@ -44,14 +45,14 @@ func DecodeBase64(data string) ([]byte, error) {
 
 func EncryptTextWithPrefix(text string, key []byte) ([]byte, error) {
 	if strings.Index(text, "enc-") == -1 {
-		return EncryptBytesAES([]byte(text), key)
+		return EncryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
 	}
 	return []byte(text), nil
 }
 
 func DecryptTextWithPrefix(text string, key []byte) ([]byte, error) {
 	if strings.Index(text, "enc-") != -1 {
-		return DecryptBytesAES([]byte(text), key)
+		return DecryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
 	}
 	return []byte(text), nil
 }

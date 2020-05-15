@@ -3,6 +3,7 @@ package lygo_strings
 import (
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"strconv"
 	"strings"
 )
 
@@ -127,6 +128,52 @@ func CapitalizeFirst(text string) string {
 		}
 	}
 	return text
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	p a d d i n g
+//----------------------------------------------------------------------------------------------------------------------
+
+func FillLeft(text string, l int, r rune) string {
+	if len(text) == l {
+		return text
+	} else if len(text) < l {
+		return fmt.Sprintf("%"+string(r)+strconv.Itoa(l)+"s", text)
+	}
+	return text[:l]
+}
+
+func FillRight(text string, l int, r rune) string {
+	if len(text) == l {
+		return text
+	} else if len(text) < l {
+		return strings.Repeat(string(r), l-len(text)) + text
+	}
+	return text[:l]
+}
+
+func FillLeftBytes(bytes []byte, l int, r rune) []byte {
+	return []byte(FillLeft(string(bytes), l, r))
+}
+
+func FillLeftZero(text string, l int) string {
+	return FillLeft(text, l, '0')
+}
+
+func FillLeftBytesZero(bytes []byte, l int) []byte {
+	return []byte(FillLeftZero(string(bytes), l))
+}
+
+func FillRightZero(text string, l int) string {
+	return FillRight(text, l, '0')
+}
+
+func FillRightBytes(bytes []byte, l int, r rune) []byte {
+	return []byte(FillRight(string(bytes), l, r))
+}
+
+func FillRightBytesZero(bytes []byte, l int) []byte {
+	return []byte(FillRight(string(bytes), l, '0'))
 }
 
 //----------------------------------------------------------------------------------------------------------------------

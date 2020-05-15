@@ -1,6 +1,9 @@
 package lygo_strings
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestFormat(t *testing.T) {
 	type args struct {
@@ -76,4 +79,16 @@ func TestCapitalizeFirst(t *testing.T) {
 	}
 }
 
+func TestFill(t *testing.T) {
+	s := FillLeft("123", 10, '0')
+	fmt.Println(s)
 
+	s = FillLeft("1234567890123", 10, '-')
+	fmt.Println(s)
+
+	s = FillLeft("123456789", 10, '0')
+	fmt.Println(s)
+
+	s = FillRight("123", 10, '*')
+	fmt.Println(s)
+}
