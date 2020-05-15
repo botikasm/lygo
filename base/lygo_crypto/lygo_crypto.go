@@ -43,6 +43,9 @@ func DecodeBase64(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
 }
 
+// Encrypt using AES with a 32 byte key and adding a prefix to avoid multiple encryption
+// Encrypted code is recognizable by the prefix.
+// Useful for password encryption
 func EncryptTextWithPrefix(text string, key []byte) (string, error) {
 	if strings.Index(text, "enc-") == -1 {
 		data , err := EncryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
