@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"io"
+	"strings"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -39,6 +40,20 @@ func EncodeBase64(data []byte) string {
 
 func DecodeBase64(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
+}
+
+func EncryptTextWithPrefix(text string, key []byte) ([]byte, error) {
+	if strings.Index(text, "enc-") == -1 {
+		return EncryptBytesAES([]byte(text), key)
+	}
+	return []byte(text), nil
+}
+
+func DecryptTextWithPrefix(text string, key []byte) ([]byte, error) {
+	if strings.Index(text, "enc-") != -1 {
+		return DecryptBytesAES([]byte(text), key)
+	}
+	return []byte(text), nil
 }
 
 func EncryptTextAES(text string, key []byte) ([]byte, error) {
