@@ -43,18 +43,27 @@ func DecodeBase64(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
 }
 
-func EncryptTextWithPrefix(text string, key []byte) ([]byte, error) {
+func EncryptTextWithPrefix(text string, key []byte) (string, error) {
 	if strings.Index(text, "enc-") == -1 {
-		return EncryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
+		data , err := EncryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
+		if nil!=err{
+			return "", err
+		}
+		return "enc-" + string(data), nil
 	}
-	return []byte(text), nil
+	return text, nil
 }
 
-func DecryptTextWithPrefix(text string, key []byte) ([]byte, error) {
+func DecryptTextWithPrefix(text string, key []byte) (string, error) {
 	if strings.Index(text, "enc-") != -1 {
-		return DecryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
+		text = text[4:]
+		data, err := DecryptBytesAES([]byte(text), lygo_strings.FillLeftBytes(key, 32, '0'))
+		if nil!=err{
+			return "", err
+		}
+		return string(data), nil
 	}
-	return []byte(text), nil
+	return text, nil
 }
 
 func EncryptTextAES(text string, key []byte) ([]byte, error) {
