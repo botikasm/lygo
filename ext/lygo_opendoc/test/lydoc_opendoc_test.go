@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_exec"
 	"github.com/botikasm/lygo/ext/lygo_opendoc"
+	"github.com/cbroglie/mustache"
 	"github.com/unidoc/unioffice/color"
 	"github.com/unidoc/unioffice/document"
 	"github.com/unidoc/unioffice/measurement"
@@ -142,6 +143,36 @@ func TestSimpleWord(t *testing.T) {
 	}
 	doc.SaveToFile("simple.docx")
 
+}
+
+func TestTemplateEngine(t *testing.T) {
+	tpl := "{{#users}}\n{{name}} {{surname}}\n{{/users}}"
+	model := map[string]interface{}{
+		"users":[]map[string]interface{}{
+			{
+				"name":"Angelo",
+				"surname":"Geminiani",
+			},
+			{
+				"name":"Luca",
+				"surname":"",
+			},
+			{
+				"name":"Andrea",
+				"surname":"",
+			},
+			{
+				"name":"Alessandro",
+				"surname":"",
+			},
+		},
+	}
+	out, err := mustache.Render(tpl, model)
+	if nil!=err{
+		t.Error(err)
+		t.FailNow()
+	}
+	fmt.Println(out)
 }
 
 
