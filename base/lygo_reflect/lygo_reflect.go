@@ -218,6 +218,18 @@ func Compare(item1, item2 interface{}) int {
 	return -1
 }
 
+func GetAt(array interface{}, index int, defValue interface{}) interface{} {
+	v := ValueOf(array)
+	k := v.Kind()
+	switch k {
+	case reflect.Slice, reflect.Array:
+		if v.Len() > index {
+			return v.Index(index).Interface()
+		}
+	}
+	return defValue
+}
+
 func Get(object interface{}, name string) interface{} {
 	if m, b := object.(map[string]interface{}); b {
 		if nil != m {

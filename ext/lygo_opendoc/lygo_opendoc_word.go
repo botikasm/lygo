@@ -99,10 +99,15 @@ func (instance *OpenDocWord) Render(context map[string]interface{}) []error {
 	if nil != instance {
 
 		// render paragraphs, except tables
-		instance.scanParagraphs(instance.paragraphs(false), context)
-
+		errs := instance.scanParagraphs(instance.paragraphs(false), context)
+		if nil != errs {
+			response = append(response, errs...)
+		}
 		// render tables
-		instance.scanTables(instance.document, context)
+		errs = instance.scanTables(instance.document, context)
+		if nil != errs {
+			response = append(response, errs...)
+		}
 	}
 	return response
 }

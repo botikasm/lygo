@@ -1,0 +1,10 @@
+{{header.company}}      {{header.phone}}        {{email}}
+
+Hello {{name}},
+this is a simple yet powerful template.
+
+Name                Surname	                Action              Subject
+-----------------------------------------------------------------------
+{{table[name]}}	    {{table[surname]}}
+-----------------------------------------------------------------------
+

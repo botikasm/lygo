@@ -11,6 +11,10 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func GetAt(array interface{}, index int, defValue interface{}) interface{} {
+	return lygo_reflect.GetAt(array, index, defValue)
+}
+
 func Sort(array interface{}) {
 	if a, b := array.([]interface{}); b {
 		sort.Slice(array, func(i, j int) bool {

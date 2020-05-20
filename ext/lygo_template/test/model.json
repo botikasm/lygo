@@ -1,0 +1,18 @@
+{
+  "header": {
+    "company": "Gemini",
+    "phone": "+393454643543"
+  },
+  "name": "John Helkàn dun Can",
+  "email": "angelo.geminiani@gmail.com",
+  "table": [
+    {
+      "name": "Carlo",
+      "surname": "Martello"
+    },
+    {
+      "name": "Mario",
+      "surname": "Cartello"
+    }
+  ]
+}
