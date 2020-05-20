@@ -181,7 +181,7 @@ func TestBigData(t *testing.T) {
 	timeStart := time.Now()
 
 	client := NewNioClient("localhost", 10001)
-	client.Secure = true // enable cryptography
+	client.Secure = false // enable cryptography
 	err = client.Open()
 	if nil != err {
 		t.Error(err)
@@ -243,9 +243,11 @@ func onMessage(message *NioMessage) interface{} {
 		if v, b := m["big"]; b {
 			a, _ := v.([]interface{})
 			fmt.Println("COMPLEX MESSAGE ARRIVED ON SERVER. big:", len(a))
+			fmt.Println("Sending response big... ")
 			return a
 		} else {
 			fmt.Println("COMPLEX MESSAGE ARRIVED ON SERVER:", m)
+			fmt.Println("Sending response as custom map... ")
 			return &map[string]interface{}{
 				"tag":    "COMPLEX RESPONSE",
 				"body":   body,

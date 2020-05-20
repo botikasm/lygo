@@ -281,7 +281,7 @@ func sendResponse(body interface{}, rw *bufio.ReadWriter, sessionKey []byte, cli
 	if nil != clientKey && !isHandshake {
 		data, err := encrypt(s, sessionKey)
 		if nil == err {
-			body = data
+			s = data
 		} else {
 			fmt.Println("Server error encrypting data", err)
 		}

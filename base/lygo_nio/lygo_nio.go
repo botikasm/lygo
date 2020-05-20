@@ -41,13 +41,13 @@ func (instance *NioSettings) Parse(text string) error {
 }
 
 func (instance *NioSettings) Host() string {
-	if instance.port == 0 && len(instance.host)==0 {
+	if instance.port == 0 && len(instance.host) == 0 {
 		instance.parseAddress(instance.Address)
 	}
 	return instance.host
 }
 func (instance *NioSettings) Port() int {
-	if instance.port == 0 && len(instance.host)==0 {
+	if instance.port == 0 && len(instance.host) == 0 {
 		instance.parseAddress(instance.Address)
 	}
 	return instance.port
@@ -73,6 +73,10 @@ func serialize(data interface{}) []byte {
 			return v
 		} else if v, b := data.(string); b {
 			return []byte(v)
+		} else if v, b := data.(error); b {
+			data = map[string]interface{}{
+				"error": v.Error(),
+			}
 		}
 		return lygo_json.Bytes(data)
 	}
