@@ -2,8 +2,11 @@ package lygo_nio
 
 import (
 	"crypto/rsa"
+	"encoding/json"
+	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_crypto"
 	"github.com/botikasm/lygo/base/lygo_json"
+	"strings"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,6 +26,41 @@ type NioMessage struct {
 	PublicKey  *rsa.PublicKey // public key for response
 	SessionKey []byte         // session key
 	Body       interface{}    // message object
+}
+
+type NioSettings struct {
+	Address string `json:"address"`
+	host    string
+	port    int
+}
+
+func (instance *NioSettings) Parse(text string) error {
+	err := json.Unmarshal([]byte(text), &instance)
+	instance.parseAddress(instance.Address)
+	return err
+}
+
+func (instance *NioSettings) Host() string {
+	if instance.port == 0 && len(instance.host)==0 {
+		instance.parseAddress(instance.Address)
+	}
+	return instance.host
+}
+func (instance *NioSettings) Port() int {
+	if instance.port == 0 && len(instance.host)==0 {
+		instance.parseAddress(instance.Address)
+	}
+	return instance.port
+}
+func (instance *NioSettings) parseAddress(address string) {
+	tokens := strings.Split(address, ":")
+	switch len(tokens) {
+	case 1:
+		instance.port = lygo_conv.ToInt(tokens[0])
+	case 2:
+		instance.host = tokens[0]
+		instance.port = lygo_conv.ToInt(tokens[1])
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

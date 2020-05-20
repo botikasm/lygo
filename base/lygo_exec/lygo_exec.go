@@ -21,7 +21,7 @@ func Run(cmd string, args ...string) ([]byte, error) {
 }
 
 func Open(args ...string) error {
-	c := exec.Command(OPEN_FILE_COMMAND, args...)
+	c := openFileCommand(args...)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return err
