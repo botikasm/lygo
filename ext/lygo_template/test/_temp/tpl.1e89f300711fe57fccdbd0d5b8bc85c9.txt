@@ -5,6 +5,6 @@ this is a simple yet powerful template.
 
 Name            Surname	                Action              Subject
 -----------------------------------------------------------------------
-{{table[name]20}}         {{table[surname]}}
+{{table[name]20}}         {{table[surname]20}}
 -----------------------------------------------------------------------
 

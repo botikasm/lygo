@@ -147,7 +147,7 @@ func FillRight(text string, l int, r rune) string {
 	if len(text) == l {
 		return text
 	} else if len(text) < l {
-		return strings.Repeat(string(r), l-len(text)) + text
+		return text + strings.Repeat(string(r), l-len(text))
 	}
 	return text[:l]
 }

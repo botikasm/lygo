@@ -9,6 +9,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_reflect"
 	"github.com/botikasm/lygo/base/lygo_rnd"
+	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/cbroglie/mustache"
 	"strings"
 )
@@ -138,7 +139,7 @@ func (instance *TemplateEngine) saveToFile(filename string) error {
 }
 
 func (instance *TemplateEngine) paragraphs(text string) []string {
-	text = strings.Trim(text, "\r")
+	text = strings.ReplaceAll(text, "\r", "")
 	return strings.Split(text, "\n")
 }
 
@@ -177,10 +178,10 @@ func (instance *TemplateEngine) renderTable(paragraph string, context map[string
 	if len(exps) > 0 {
 		// adjust paragraph replacing table fields
 		for _, exp := range exps {
-			_, _, f := parseTableName(exp)
+			_, _, f, _ := parseTableName(exp)
 			paragraph = strings.ReplaceAll(paragraph, exp, f)
 		}
-		_, tableName, fieldName := parseTableName(exps[0])
+		_, tableName, fieldName, _ := parseTableName(exps[0])
 		if len(tableName) > 0 && len(fieldName) > 0 {
 			tableData := lygo_conv.ToArray(context[tableName])
 			if nil != tableData {
@@ -188,8 +189,12 @@ func (instance *TemplateEngine) renderTable(paragraph string, context map[string
 					// build a model for current row
 					model := map[string]interface{}{}
 					for _, exp := range exps {
-						_, _, f := parseTableName(exp)
-						model[f] = lygo_reflect.Get(item, f)
+						_, _, f, cl := parseTableName(exp)
+						value := lygo_reflect.Get(item, f)
+						if v, b := value.(string); b && cl > 0 {
+							value = lygo_strings.FillRight(v, cl, ' ')
+						}
+						model[f] = value
 					}
 					// render row
 					text, err := mustache.Render(paragraph, model)
@@ -213,13 +218,16 @@ func (instance *TemplateEngine) renderTable(paragraph string, context map[string
 //	S T A T I C
 //----------------------------------------------------------------------------------------------------------------------
 
-func parseTableName(text string) (string, string, string) {
+func parseTableName(text string) (string, string, string, int) {
 	text = strings.ReplaceAll(text, "[", "|")
-	text = strings.ReplaceAll(text, "]", "") // {{table|name}}
+	text = strings.ReplaceAll(text, "]", ":") // {{table|name}}
 	tokens := strings.Split(text, "|")
 	tableName := lygo_array.GetAt(tokens, 0, "").(string)
-	fieldName := lygo_array.GetAt(tokens, 1, "").(string)
-	return text, tableName, fieldName
+	fieldNames := strings.Split(lygo_array.GetAt(tokens, 1, "").(string), ":")
+	fieldName := fieldNames[0]
+	columnLen := lygo_conv.ToIntDef(lygo_array.GetAt(fieldNames, 1, "0"), 0)
+
+	return text, tableName, fieldName, columnLen
 }
 
 func parseTableFields(text string) []string {
@@ -240,7 +248,7 @@ func parseTableFields(text string) []string {
 }
 
 func expIsTable(text string) bool {
-	return strings.Index(text, "]}}") > -1
+	return expIsComplete(text) && strings.Index(text, "[") > -1 && strings.Index(text, "]") > -1
 }
 
 func expIsComplete(text string) bool {
