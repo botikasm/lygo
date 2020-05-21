@@ -29,4 +29,5 @@ func TestTemplate(t *testing.T) {
 		t.FailNow()
 	}
 	fmt.Println(engine)
+	engine.SaveTo("./doc.txt")
 }

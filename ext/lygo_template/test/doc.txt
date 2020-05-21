@@ -1,0 +1,12 @@
+Gemini      +393454643543        angelo.geminiani@gmail.com
+
+Hello John Helkàn dun Can,
+this is a simple yet powerful template.
+
+Name            Surname	                Action              Subject
+-----------------------------------------------------------------------
+Carlo                        Martello
+Mario                        Cartello
+-----------------------------------------------------------------------
+
+
