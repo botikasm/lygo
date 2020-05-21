@@ -17,5 +17,5 @@ const (
 //----------------------------------------------------------------------------------------------------------------------
 
 func openFileCommand(args ...string) *exec.Cmd {
-	return exec.Command("cmd", "/C "+OPEN_FILE_COMMAND+args[0])
+	return exec.Command("cmd", "/C "+OPEN_FILE_COMMAND+ " " + args[0])
 }
