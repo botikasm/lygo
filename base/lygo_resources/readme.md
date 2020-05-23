@@ -5,6 +5,11 @@ This little package uses special comment with `//go:generate go run gen.go`.
 
 That's the magic.
 
+## Credits
+
+Thank you at the great [post](https://levelup.gitconnected.com/how-i-embedded-resources-in-go-514b72f6ef0a) of Kasun Vithanage
+ 
+
 ## How to Use
 
 * Create a `./resources` directory and put here all your resource.
