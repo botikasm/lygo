@@ -9,6 +9,13 @@ import (
 
 func TestGenerator(t *testing.T) {
 	// run generator
+	generator := NewGenerator()
+	generator.Start()
+}
+
+
+func TestGeneratorSh(t *testing.T) {
+	// run generator
 	_, err := lygo_exec.Run("go", "generate", "./...")
 	if nil != err {
 		t.Error(err)

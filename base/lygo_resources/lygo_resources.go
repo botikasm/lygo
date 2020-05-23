@@ -1,4 +1,4 @@
-//go:generate go run lygo_resources_generator.go
+//go:generate go run lygo_resources_generator_launcher.go
 
 package lygo_resources
 
@@ -12,8 +12,6 @@ import (
 //	v a r s
 //----------------------------------------------------------------------------------------------------------------------
 
-var DirResources = "resources"
-var OutFileName = "blobResources.go"
 
 //----------------------------------------------------------------------------------------------------------------------
 //	t y p e s
