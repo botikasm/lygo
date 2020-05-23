@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,27 +38,29 @@ func FormatByteSlice(sl []byte) string {
 }
 
 func main() {
-	log.Println("Baking resources... \U0001F4E6")
+	fmt.Println("---------------------------------------")
+	fmt.Println("Packing resources starting from directory '" + resourcesDir + "'")
 
 	if _, err := os.Stat(resourcesDir); os.IsNotExist(err) {
-		log.Fatal("Resources directory does not exists")
+		fmt.Println("Resources directory does not exists!")
+		return
 	}
 
 	resources := make(map[string][]byte)
 	err := filepath.Walk(resourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Println("Error :", err)
+			fmt.Println("Error :", err)
 			return err
 		}
 		relativePath := filepath.ToSlash(strings.TrimPrefix(path, "resources"))
 		if info.IsDir() {
-			log.Println(path, "is a directory, skipping... \U0001F47B")
+			fmt.Println(path, "is a directory, skipping...")
 			return nil
 		} else {
-			log.Println(path, "is a file, baking in... \U0001F31F")
+			fmt.Println(path, "is a file, packing as: ", relativePath)
 			b, err := ioutil.ReadFile(path)
 			if err != nil {
-				log.Printf("Error reading %s: %s", path, err)
+				fmt.Printf("Error reading %s: %s", path, err)
 				return err
 			}
 			resources[relativePath] = b
@@ -68,12 +69,14 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatal("Error walking through resources directory:", err)
+		fmt.Println("Error walking through resources directory:", err)
+		return
 	}
 
 	f, err := os.Create(outputFileName)
 	if err != nil {
-		log.Fatal("Error creating blob file:", err)
+		fmt.Println("Error creating blob file:", err)
+		return
 	}
 	defer f.Close()
 
@@ -81,18 +84,21 @@ func main() {
 
 	err = packageTemplate.Execute(builder, resources)
 	if err != nil {
-		log.Fatal("Error executing template", err)
+		fmt.Println("Error executing template", err)
+		return
 	}
 
 	data, err := format.Source(builder.Bytes())
 	if err != nil {
-		log.Fatal("Error formatting generated code", err)
+		fmt.Println("Error formatting generated code", err)
+		return
 	}
 	err = ioutil.WriteFile(outputFileName, data, os.ModePerm)
 	if err != nil {
-		log.Fatal("Error writing blob file", err)
+		fmt.Println("Error writing blob file", err)
+		return
 	}
 
-	log.Println("Baking resources done... \U0001F680")
-	log.Println("DO NOT COMMIT box/blob.go \U0001F47B")
+	fmt.Println("Packing resources done...")
+	fmt.Println("DO NOT COMMIT " + outputFileName)
 }

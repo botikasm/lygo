@@ -12,12 +12,11 @@ That's the magic.
 
 Sample:
 ```
-func TestResource(t *testing.T) {
+func UseResource() {
 	// get resource
-	data, found := Get("/my_resource.txt")
+	data, found := lygo_resources.Get("/my_resource.txt")
 	if !found {
-		t.Error("Resource not found")
-		t.FailNow()
+		fmt.Prinln("Resource not found")
 	}
 	fmt.Println(string(data))
 }
