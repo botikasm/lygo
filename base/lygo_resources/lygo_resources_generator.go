@@ -73,6 +73,7 @@ func main() {
 		return
 	}
 
+	//lygo_paths.Mkdir(outputFileName)
 	f, err := os.Create(outputFileName)
 	if err != nil {
 		fmt.Println("Error creating blob file:", err)

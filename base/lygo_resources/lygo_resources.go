@@ -2,6 +2,12 @@
 
 package lygo_resources
 
+import (
+	"bufio"
+	"os"
+	"path"
+)
+
 //----------------------------------------------------------------------------------------------------------------------
 //	t y p e s
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,16 +53,36 @@ func (r *resourceBox) Add(file string, content []byte) {
 var resources = newResourceBox()
 
 // Get a file from box
-func Get(file string) ([]byte, bool)  {
-	return resources.Get(file)
+func Get(resource string) ([]byte, bool) {
+	return resources.Get(resource)
 }
 
 // Add a file content to box
-func Add(file string, content []byte) {
-	resources.Add(file, content)
+func Add(resource string, content []byte) {
+	resources.Add(resource, content)
 }
 
 // Has a file in box
-func Has(file string) bool {
-	return resources.Has(file)
+func Has(resource string) bool {
+	return resources.Has(resource)
+}
+
+func SaveToDir(dir, resource string) (string, bool) {
+	p := path.Join(dir, resource)
+	return SaveTo(p, resource)
+}
+
+func SaveTo(outFileName, resource string) (string, bool) {
+	data, found := resources.Get(resource)
+	if found {
+		f, err := os.Create(outFileName)
+		if err == nil {
+			defer f.Close()
+			w := bufio.NewWriter(f)
+			_, err = w.Write(data)
+			_ = w.Flush()
+		}
+		return f.Name(), true
+	}
+	return "", found
 }
