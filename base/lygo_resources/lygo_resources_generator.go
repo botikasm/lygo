@@ -39,20 +39,22 @@ const pkg = "lygo_resources"
 //----------------------------------------------------------------------------------------------------------------------
 
 type Generator struct {
-	Directory string
+	Directory  string
 	OutputFile string
-	Package string
+	Package    string
+	Exclude    []string
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewGenerator() *Generator{
-	instance := new (Generator)
+func NewGenerator() *Generator {
+	instance := new(Generator)
 	instance.Directory = dirResources
 	instance.OutputFile = outFileName
 	instance.Package = pkg
+	instance.Exclude = make([]string, 0)
 	return instance
 }
 
@@ -69,6 +71,7 @@ func (instance *Generator) Start() {
 		return
 	}
 
+	count := 0
 	context := make(map[string]interface{})
 	resources := make(map[string][]byte)
 	context["Package"] = instance.Package
@@ -80,16 +83,21 @@ func (instance *Generator) Start() {
 		}
 		relativePath := filepath.ToSlash(strings.TrimPrefix(path, "resources"))
 		if info.IsDir() {
-			fmt.Println(path, "is a directory, skipping...")
+			fmt.Println("[DIR] ", relativePath)
 			return nil
 		} else {
-			fmt.Println(path, "is a file, packing as: ", relativePath)
 			b, err := ioutil.ReadFile(path)
 			if err != nil {
 				fmt.Printf("Error reading %s: %s", path, err)
 				return err
 			}
-			resources[relativePath] = b
+			if !instance.isExcluded(relativePath) {
+				fmt.Println("\t* INCLUDING: ", relativePath)
+				count++
+				resources[relativePath] = b
+			} else {
+				fmt.Println("\t! EXCLUDING: ", relativePath)
+			}
 		}
 		return nil
 	})
@@ -128,7 +136,17 @@ func (instance *Generator) Start() {
 	}
 
 	fmt.Println("Packing resources done...")
+	fmt.Println("TOTAL RESOURCES: ", count)
 	fmt.Println("DO NOT COMMIT " + instance.OutputFile)
+}
+
+func (instance *Generator) isExcluded(path string) bool {
+	for _, s := range instance.Exclude {
+		if strings.Index(path, s) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 //----------------------------------------------------------------------------------------------------------------------

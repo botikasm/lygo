@@ -12,6 +12,7 @@ func TestGenerator(t *testing.T) {
 	// run generator
 	generator := lygo_resources.NewGenerator()
 	generator.Package = "test"
+	generator.Exclude = []string{"/excluded/"}
 	generator.Start()
 }
 
