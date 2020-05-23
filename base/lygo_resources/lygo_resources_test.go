@@ -10,6 +10,7 @@ import (
 func TestGenerator(t *testing.T) {
 	// run generator
 	generator := NewGenerator()
+	generator.Package = "lygo_resources"
 	generator.Start()
 }
 
