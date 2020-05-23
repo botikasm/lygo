@@ -21,9 +21,11 @@ var packageTemplate = template.Must(template.New("").Funcs(map[string]interface{
 // DO NOT COMMIT this file
 package {{.Package}}
 
+import "github.com/botikasm/lygo/base/lygo_resources"
+
 func init(){
 	{{- range $name, $file := .Resources }}
-    	resources.Add("{{ $name }}", []byte{ {{ conv $file }} })
+    	lygo_resources.Resources.Add("{{ $name }}", []byte{ {{ conv $file }} })
 	{{- end }}
 }
 `))

@@ -17,6 +17,13 @@ Thank you at the great [post](https://levelup.gitconnected.com/how-i-embedded-re
 
 Sample:
 ```
+func Generate(){
+    var generator *lygo_resources.Generator = lygo_resources.NewGenerator()
+    generator.Package = "test"
+    generator.Directory = "./test/resources"
+    generator.OutputFile = "./test/blobResources.go"
+    generator.Start()
+}
 func UseResource() {
 	// get resource
 	data, found := lygo_resources.Get("/my_resource.txt")

@@ -9,11 +9,6 @@ import (
 )
 
 //----------------------------------------------------------------------------------------------------------------------
-//	v a r s
-//----------------------------------------------------------------------------------------------------------------------
-
-
-//----------------------------------------------------------------------------------------------------------------------
 //	t y p e s
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -55,21 +50,21 @@ func (r *resourceBox) Add(file string, content []byte) {
 //----------------------------------------------------------------------------------------------------------------------
 
 // private resource container
-var resources = newResourceBox()
+var Resources = newResourceBox()
 
 // Get a file from box
 func Get(resource string) ([]byte, bool) {
-	return resources.Get(resource)
+	return Resources.Get(resource)
 }
 
 // Add a file content to box
 func Add(resource string, content []byte) {
-	resources.Add(resource, content)
+	Resources.Add(resource, content)
 }
 
 // Has a file in box
 func Has(resource string) bool {
-	return resources.Has(resource)
+	return Resources.Has(resource)
 }
 
 func SaveToDir(dir, resource string) (string, bool) {
@@ -78,7 +73,7 @@ func SaveToDir(dir, resource string) (string, bool) {
 }
 
 func SaveTo(outFileName, resource string) (string, bool) {
-	data, found := resources.Get(resource)
+	data, found := Resources.Get(resource)
 	if found {
 		f, err := os.Create(outFileName)
 		if err == nil {
