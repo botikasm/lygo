@@ -6,7 +6,7 @@ import (
 )
 
 //----------------------------------------------------------------------------------------------------------------------
-//	t y p e s
+//	t y p e s*lygo_http_server_config.HttpServerConfig
 //----------------------------------------------------------------------------------------------------------------------
 
 type HttpServerConfig struct {
@@ -47,6 +47,8 @@ type HttpServerConfig struct {
 
 	// Limiter
 	Limiter *HttpServerConfigLimiter `json:"limiter"`
+
+	WebSocketEndpoint string `json:"websocket"`
 }
 
 type HttpServerConfigHost struct {
@@ -133,7 +135,7 @@ func (instance *HttpServerConfig) Parse(text string) error {
 	return err
 }
 
-func (instance *HttpServerConfig) ToString() string {
+func (instance *HttpServerConfig) String() string {
 	b, err := json.Marshal(&instance)
 	if nil == err {
 		return string(b)

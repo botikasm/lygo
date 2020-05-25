@@ -124,7 +124,10 @@ func (instance *HttpServer) Websocket(args ...interface{}) {
 	switch len(args) {
 	case 1:
 		if v, b := args[0].(func(ctx *HttpWebsocketConn)); b {
-			item.Path = "/ws"
+			item.Path = instance.Config.WebSocketEndpoint
+			if len(item.Path) == 0 {
+				item.Path = "/ws"
+			}
 			item.Handler = v
 		}
 	case 2:

@@ -1,0 +1,47 @@
+{
+  "http": {
+    "hosts": [
+      {
+        "addr": ":80",
+        "tls": false,
+        "websocket": {
+          "enabled": true
+        }
+      },
+      {
+        "addr": ":443",
+        "tls": true,
+        "ssl_cert": "./cert/ssl-cert.pem",
+        "ssl_key": "./cert/ssl-cert.key",
+        "websocket": {
+          "enabled": true
+        }
+      }
+    ],
+    "enable_request_id": true,
+    "prefork": false,
+    "static": [
+      {
+        "enabled": true,
+        "prefix": "/",
+        "root": "./www",
+        "index": "",
+        "compress": true
+      }
+    ],
+    "compression": {
+      "enabled": false,
+      "level": 0
+    },
+    "limiter": {
+      "enabled": false,
+      "timeout": 30,
+      "max": 10
+    },
+    "websocket": "/ws"
+  },
+
+  "nio": {
+    "address": ":10001"
+  }
+}

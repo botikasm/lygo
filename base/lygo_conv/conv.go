@@ -28,6 +28,13 @@ func ToArrayOfString(val ...interface{}) []string {
 	return aa
 }
 
+func ToArrayOfByte(val interface{}) []byte {
+	if nil == val {
+		return nil
+	}
+	return toArrayOfByte(val)
+}
+
 func ToString(val interface{}) string {
 	if nil == val {
 		return ""
@@ -98,8 +105,8 @@ func ToString(val interface{}) string {
 }
 func ToStringQuoted(val interface{}) string {
 	response := ToString(val)
-	if _, b := val.(string);b{
-		if strings.Index(response, "\"")==-1{
+	if _, b := val.(string); b {
+		if strings.Index(response, "\"") == -1 {
 			response = strconv.Quote(response)
 		}
 	}
@@ -423,6 +430,49 @@ func toArrayOfString(args ...interface{}) []string {
 	}
 
 	return response
+}
+
+func tryToArrayOfByte(val interface{}) []byte {
+	if v, b := val.([]uint8); b {
+		return v
+	} else if v, b := val.([]byte); b {
+		return v
+	} else if v, b := val.(string); b {
+		return []byte(v)
+	} else if v, b := val.(bool); b {
+		if v {
+			return []byte{1}
+		} else {
+			return []byte{0}
+		}
+	} else {
+		return []byte(ToString(val))
+	}
+	return nil
+}
+
+func toArrayOfByte(args interface{}) []byte {
+	if nil != args {
+		t := tryToArrayOfByte(args)
+		if nil != t {
+			return t
+		}
+		refVal := reflect.ValueOf(args)
+		refKind := refVal.Kind()
+		switch refKind {
+		case reflect.Array, reflect.Slice:
+			response := make([]byte, 0)
+			for i := 0; i < refVal.Len(); i++ {
+				t := tryToArrayOfByte(args)
+				if nil != t {
+					response = append(response, t...)
+				}
+			}
+			return response
+		default:
+		}
+	}
+	return make([]byte, 0)
 }
 
 func toMap(val interface{}) map[string]interface{} {
