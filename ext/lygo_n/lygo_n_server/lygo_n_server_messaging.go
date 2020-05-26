@@ -98,7 +98,7 @@ func (instance *MessagingController) handleWs(payload *lygo_http_server.HttpWebs
 					// invalid message
 				}
 			} else {
-				instance.events.Emit(EventError, ContextWebsocket, payload, err)
+				instance.events.Emit(lygo_n_commons.EventError, lygo_n_commons.ContextWebsocket, payload, err)
 			}
 		}
 	}

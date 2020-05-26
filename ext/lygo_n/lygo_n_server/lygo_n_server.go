@@ -12,22 +12,6 @@ import (
 	"github.com/gofiber/fiber"
 )
 
-// ---------------------------------------------------------------------------------------------------------------------
-//		e r r o r    c o n t e x t
-// ---------------------------------------------------------------------------------------------------------------------
-
-const (
-	ContextDatabase  = "db"
-	ContextWebsocket = "ws"
-)
-
-// ---------------------------------------------------------------------------------------------------------------------
-//		e v e n t s
-// ---------------------------------------------------------------------------------------------------------------------
-
-const (
-	EventError = "on_error"
-)
 
 // ---------------------------------------------------------------------------------------------------------------------
 //		t y p e s
@@ -177,14 +161,14 @@ func (instance *NServer) onError(errCtx *lygo_http_server_types.HttpServerError)
 	if nil != instance && nil != instance.server && nil != instance.events {
 		// fmt.Println(errCtx.Message, errCtx.Error.Error())
 		lygo_logs.Error(errCtx.Message, errCtx.Error.Error())
-		instance.events.Emit(EventError, ContextWebsocket, errCtx, errCtx.Error)
+		instance.events.Emit(lygo_n_commons.EventError, lygo_n_commons.ContextWebsocket, errCtx, errCtx.Error)
 	}
 }
 
 func (instance *NServer) onLimit(c *fiber.Ctx) {
 	if nil != instance && nil != instance.server && nil != instance.events {
 		c.Send("too many requests: limit exceeded")
-		instance.events.Emit(EventError, ContextWebsocket, "too many requests: limit exceeded", c.Error().Error())
+		instance.events.Emit(lygo_n_commons.EventError, lygo_n_commons.ContextWebsocket, "too many requests: limit exceeded", c.Error().Error())
 	}
 }
 

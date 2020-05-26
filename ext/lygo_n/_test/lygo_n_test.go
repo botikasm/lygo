@@ -104,7 +104,7 @@ func TestSimpleCommunication(t *testing.T) {
 //----------------------------------------------------------------------------------------------------------------------
 
 func configSrv() *lygo_n_server.NServerSettings {
-	text_cfg, _ := lygo_io.ReadTextFromFile("./server.config.json")
+	text_cfg, _ := lygo_io.ReadTextFromFile("./config.server.json")
 	config := new(lygo_n_server.NServerSettings)
 	config.Parse(text_cfg)
 
@@ -112,7 +112,7 @@ func configSrv() *lygo_n_server.NServerSettings {
 }
 
 func configCli() *lygo_n_client.NClientSettings {
-	text_cfg, _ := lygo_io.ReadTextFromFile("./client.config.json")
+	text_cfg, _ := lygo_io.ReadTextFromFile("./config.client.json")
 	config := new(lygo_n_client.NClientSettings)
 	config.Parse(text_cfg)
 
