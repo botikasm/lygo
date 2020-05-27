@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/ext/lygo_n"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
@@ -99,9 +100,33 @@ func TestSimpleCommunication(t *testing.T) {
 	fmt.Println("EXITING...")
 }
 
+func TestNode(t *testing.T) {
+	node := lygo_n.NewNode(config())
+	if nil==node{
+		t.FailNow()
+	}
+
+	// open node
+	errs = node.Start()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
+
+func config() *lygo_n.NSettings {
+	text_cfg, _ := lygo_io.ReadTextFromFile("./config.node.json")
+	config := new(lygo_n.NSettings)
+	config.Parse(text_cfg)
+
+	return config
+}
 
 func configSrv() *lygo_n_server.NServerSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.server.json")
