@@ -11,8 +11,10 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type NSettings struct {
-	Client *lygo_n_client.NClientSettings
-	Server lygo_n_server.NServerSettings
+	Workspace string `json:"workspace"`
+	LogLevel  string `json:"log_level"` // warn, info, error, debug
+	Client    *lygo_n_client.NClientSettings
+	Server    *lygo_n_server.NServerSettings
 }
 
 //----------------------------------------------------------------------------------------------------------------------

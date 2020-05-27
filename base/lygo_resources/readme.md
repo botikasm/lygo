@@ -13,7 +13,8 @@ Thank you at the great [post](https://levelup.gitconnected.com/how-i-embedded-re
 ## How to Use
 
 * Create a `./resources` directory and put here all your resource.
-* Run `go generate ./...`
+* Run `go generate ./...` or..
+* ... use `lygo_resources.Generator` library as below
 
 Sample:
 ```

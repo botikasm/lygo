@@ -22,6 +22,10 @@ var (
 	CommandNotFoundError        = errors.New("command_not_found")
 	UnsupportedMessageTypeError = errors.New("unsupported_message_type")
 	InvalidTokenError           = errors.New("invalid_token_error")
+
+	// warns
+	ServerNotEnabledWarning       = errors.New("server_not_enabled_warning")
+	ClientNotEnabledWarning     = errors.New("client_not_enabled_warning")
 )
 
 // ---------------------------------------------------------------------------------------------------------------------

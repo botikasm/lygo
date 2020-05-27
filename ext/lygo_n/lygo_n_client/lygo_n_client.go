@@ -56,14 +56,14 @@ func (instance *NClient) IsOpen() bool {
 	return false
 }
 
-func (instance *NClient) Start() []error {
+func (instance *NClient) Start() ([]error, []string) {
 	if nil != instance {
 		if !instance.initialized {
 			instance.initialized = true
 			return instance.init()
 		}
 	}
-	return []error{lygo_n_commons.PanicSystemError}
+	return []error{lygo_n_commons.PanicSystemError}, []string{}
 }
 
 func (instance *NClient) Stop() []error {
@@ -123,22 +123,27 @@ func (instance *NClient) Send(commandName string, params map[string]interface{})
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *NClient) init() []error {
+func (instance *NClient) init() ([]error, []string) {
 
-	response := make([]error, 0)
+	responseErrs := make([]error, 0)
+	responseWarns := make([]string, 0)
 
-	// nio
-	nioHost := instance.Settings.Nio.Host()
-	nioPort := instance.Settings.Nio.Port()
-	if len(nioHost) > 0 && nioPort > 0 {
-		instance.nio = lygo_nio.NewNioClient(nioHost, nioPort)
-		err := instance.nio.Open()
-		if nil != err {
-			response = append(response, err)
+	if instance.Settings.Enabled {
+		// nio
+		nioHost := instance.Settings.Nio.Host()
+		nioPort := instance.Settings.Nio.Port()
+		if len(nioHost) > 0 && nioPort > 0 {
+			instance.nio = lygo_nio.NewNioClient(nioHost, nioPort)
+			err := instance.nio.Open()
+			if nil != err {
+				responseErrs = append(responseErrs, err)
+			}
 		}
+	} else {
+		responseWarns = append(responseWarns, lygo_n_commons.ClientNotEnabledWarning.Error())
 	}
 
-	return response
+	return responseErrs, responseWarns
 }
 
 func (instance *NClient) close() []error {

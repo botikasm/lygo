@@ -44,7 +44,7 @@ type LogParams struct {
 
 type LogContext struct {
 	Caller string
-	Data  interface{}
+	Data   interface{}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -118,6 +118,32 @@ func SetLevel(value int) {
 		_logger.SetLevel(logrus.TraceLevel)
 	default:
 		_logger.SetLevel(logrus.WarnLevel)
+	}
+}
+
+func SetLevelName(value string) {
+	switch value {
+	case "panic":
+		_logger.SetLevel(logrus.PanicLevel)
+		_level = LEVEL_PANIC
+	case "error":
+		_logger.SetLevel(logrus.ErrorLevel)
+		_level = LEVEL_ERROR
+	case "warn":
+		_logger.SetLevel(logrus.WarnLevel)
+		_level = LEVEL_WARN
+	case "info":
+		_logger.SetLevel(logrus.InfoLevel)
+		_level = LEVEL_INFO
+	case "debug":
+		_logger.SetLevel(logrus.DebugLevel)
+		_level = LEVEL_DEBUG
+	case "trace":
+		_logger.SetLevel(logrus.TraceLevel)
+		_level = LEVEL_TRACE
+	default:
+		_logger.SetLevel(logrus.WarnLevel)
+		_level = LEVEL_WARN
 	}
 }
 
@@ -211,7 +237,6 @@ func initialize() {
 	var workspace string = lygo_paths.GetWorkspacePath()
 	_root = lygo_paths.Concat(workspace, ROOT) + string(os.PathSeparator)
 	_fileName = lygo_paths.Concat(_root, "logging.log")
-	lygo_paths.Mkdir(_root)
 
 	// init the buffered channel
 	_channel = make(chan *LogParams, 10)
@@ -231,6 +256,10 @@ func doLog(level int, args ...interface{}) {
 
 	// init write on file
 	if _output == OUTPUT_FILE {
+		if b, _ := lygo_paths.Exists(_root); !b {
+			lygo_paths.Mkdir(_root)
+		}
+
 		file, err := os.OpenFile(_fileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm) // 0644
 		if err != nil {
 			_logger.SetOutput(os.Stderr)
@@ -293,4 +322,3 @@ func parseContext(args ...interface{}) (fields logrus.Fields, message string) {
 
 	return fields, message
 }
-

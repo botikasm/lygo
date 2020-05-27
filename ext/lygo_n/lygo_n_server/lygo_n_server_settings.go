@@ -11,8 +11,9 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type NServerSettings struct {
-	Http *lygo_http_server_config.HttpServerConfig `json:"http"`
-	Nio  *lygo_nio.NioSettings                     `json:"nio"`
+	Enabled bool                                      `json:"enabled"`
+	Http    *lygo_http_server_config.HttpServerConfig `json:"http"`
+	Nio     *lygo_nio.NioSettings                     `json:"nio"`
 }
 
 //----------------------------------------------------------------------------------------------------------------------

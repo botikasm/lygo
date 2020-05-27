@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber"
 )
 
-
 // ---------------------------------------------------------------------------------------------------------------------
 //		t y p e s
 // ---------------------------------------------------------------------------------------------------------------------
@@ -40,6 +39,7 @@ func NewNServer(settings *NServerSettings) *NServer {
 
 	if nil == instance.Settings {
 		instance.Settings = new(NServerSettings)
+		instance.Settings.Enabled = false
 		instance.Settings.Http = lygo_http_server_config.NewHttpServerConfig()
 		instance.Settings.Nio = new(lygo_nio.NioSettings)
 	}
@@ -54,19 +54,19 @@ func NewNServer(settings *NServerSettings) *NServer {
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *NServer) Start() []error {
+func (instance *NServer) Start() ([]error, []string) {
 	if nil != instance {
 		if !instance.initialized {
-			return instance.init()
+			return  instance.init()
 		}
-		return []error{}
+		return []error{}, []string{}
 	}
-	return []error{lygo_n_commons.PanicSystemError}
+	return []error{lygo_n_commons.PanicSystemError}, []string{}
 }
 
 func (instance *NServer) Join() []error {
 	if nil != instance {
-		err := instance.Start()
+		err, _ := instance.Start()
 		if nil != err {
 			return err
 		}
@@ -75,7 +75,17 @@ func (instance *NServer) Join() []error {
 	return nil
 }
 
-func (instance *NServer) AddCommand(command string, handler CommandHandler) {
+func (instance *NServer) Stop() []error {
+	if nil != instance {
+		if nil != instance.server {
+			instance.server.Stop()
+		}
+		return nil
+	}
+	return []error{lygo_n_commons.PanicSystemError}
+}
+
+func (instance *NServer) RegisterCommand(command string, handler CommandHandler) {
 	if nil != instance {
 		if nil != instance.messaging {
 			instance.messaging.Register(command, handler)
@@ -111,50 +121,55 @@ func (instance *NServer) Server() *lygo_http_server.HttpServer {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *NServer) init() []error {
+func (instance *NServer) init() ([]error, []string) {
 	instance.initialized = true
 
-	response := make([]error, 0)
+	responseErrs := make([]error, 0)
+	responseWarns := make([]string, 0)
 
-	// http
-	if nil != instance.Server() {
-		instance.server.CallbackError = instance.onError
-		instance.server.CallbackLimitReached = instance.onLimit
-		// enable websocket
-		websocket := instance.server.Config.WebSocketEndpoint
-		if len(websocket) > 0 {
-			instance.server.Websocket(func(ws *lygo_http_server.HttpWebsocketConn) {
-				ws.OnMessage(instance.handleWs)
-			})
-		}
-		err := instance.server.Start()
-		if nil == err {
-			for _, host := range instance.Settings.Http.Hosts {
-				fmt.Println("HTTP SERVER LISTENING AT:", host.Address)
+	if instance.Settings.Enabled {
+		// http
+		if nil != instance.Server() {
+			instance.server.CallbackError = instance.onError
+			instance.server.CallbackLimitReached = instance.onLimit
+			// enable websocket
+			websocket := instance.server.Config.WebSocketEndpoint
+			if len(websocket) > 0 {
+				instance.server.Websocket(func(ws *lygo_http_server.HttpWebsocketConn) {
+					ws.OnMessage(instance.handleWs)
+				})
 			}
-		} else {
-			fmt.Println("HTTP SERVER ERROR:", err)
-			response = append(response, err)
+			err := instance.server.Start()
+			if nil == err {
+				for _, host := range instance.Settings.Http.Hosts {
+					fmt.Println("HTTP SERVER LISTENING AT:", host.Address)
+				}
+			} else {
+				fmt.Println("HTTP SERVER ERROR:", err)
+				responseErrs = append(responseErrs, err)
+			}
+			if len(websocket) > 0 {
+				fmt.Println("WEBSOCKET RESPONDING AT:", instance.server.Config.WebSocketEndpoint)
+			}
 		}
-		if len(websocket) > 0 {
-			fmt.Println("WEBSOCKET RESPONDING AT:", instance.server.Config.WebSocketEndpoint)
+
+		// nio
+		if nil != instance.Settings.Nio && len(instance.Settings.Nio.Address) > 0 && instance.Settings.Nio.Port() > 0 {
+			instance.nio = lygo_nio.NewNioServer(instance.Settings.Nio.Port())
+			err := instance.nio.Open()
+			if nil == err {
+				instance.nio.OnMessage(instance.messaging.handleNioMessage)
+				fmt.Println("NIO SERVER LISTENING ON PORT:", instance.Settings.Nio.Port())
+			} else {
+				fmt.Println("NIO SERVER ERROR:", err)
+				responseErrs = append(responseErrs, err)
+			}
 		}
+	} else {
+		responseWarns = append(responseWarns, lygo_n_commons.ServerNotEnabledWarning.Error())
 	}
 
-	// nio
-	if nil != instance.Settings.Nio && len(instance.Settings.Nio.Address) > 0 && instance.Settings.Nio.Port() > 0 {
-		instance.nio = lygo_nio.NewNioServer(instance.Settings.Nio.Port())
-		err := instance.nio.Open()
-		if nil == err {
-			instance.nio.OnMessage(instance.messaging.handleNioMessage)
-			fmt.Println("NIO SERVER LISTENING ON PORT:", instance.Settings.Nio.Port())
-		} else {
-			fmt.Println("NIO SERVER ERROR:", err)
-			response = append(response, err)
-		}
-	}
-
-	return response
+	return responseErrs, responseWarns
 }
 
 func (instance *NServer) onError(errCtx *lygo_http_server_types.HttpServerError) {

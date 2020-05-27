@@ -10,8 +10,8 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type NClientSettings struct {
-
-	Nio  *lygo_nio.NioSettings                     `json:"nio"`
+	Enabled bool                  `json:"enabled"`
+	Nio     *lygo_nio.NioSettings `json:"nio"`
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -25,6 +25,3 @@ func (instance *NClientSettings) Parse(text string) error {
 func (instance *NClientSettings) String() string {
 	return lygo_json.Stringify(instance)
 }
-
-
-

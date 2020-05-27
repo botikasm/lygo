@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/ext/lygo_n"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
 	"github.com/gofiber/fiber"
 	"testing"
+	"time"
 )
 
 func TestSimpleCommunication(t *testing.T) {
@@ -17,16 +19,16 @@ func TestSimpleCommunication(t *testing.T) {
 	server := lygo_n_server.NewNServer(configSrv())
 
 	server.OnMessage = onMessage
-	server.AddCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
+	server.RegisterCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
 		return "1.0.2"
 	})
-	server.AddCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
+	server.RegisterCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
 		return true
 	})
-	server.AddCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
+	server.RegisterCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
 		return errors.New("ERROR SIMULATION")
 	})
-	server.AddCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
+	server.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
 		data, err := lygo_io.ReadBytesFromFile(message.GetParamAsString("file"))
 		if nil!=err{
 			return err
@@ -36,14 +38,14 @@ func TestSimpleCommunication(t *testing.T) {
 
 	initialize(server)
 
-	errs := server.Start()
+	errs, _ := server.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
 
 	client := lygo_n_client.NewNClient(configCli())
-	errs = client.Start()
+	errs, _ = client.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
@@ -107,13 +109,32 @@ func TestNode(t *testing.T) {
 	}
 
 	// open node
-	errs = node.Start()
+	errs := node.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
 
+	// register a command handler
+	node.RegisterCommand("sys.version", func(message *lygo_n_commons.Command) interface{} {
+		return "v1.0.1"
+	})
 
+	// test command
+	response, err :=node.Send("sys.version", nil)
+	if nil!=err {
+		t.Error(err)
+		t.FailNow()
+	}
+	fmt.Println("Response to command:", "sys.version", string(response))
+
+	errs = node.Stop()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+	time.Sleep(5*time.Second)
+	lygo_logs.Close()
 }
 
 //----------------------------------------------------------------------------------------------------------------------

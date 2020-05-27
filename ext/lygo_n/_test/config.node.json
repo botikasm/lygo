@@ -1,10 +1,12 @@
 {
   "client": {
+    "enabled": false,
     "nio": {
       "address": "localhost:10001"
     }
   },
   "server": {
+    "enabled": true,
     "http": {
       "hosts": [
         {
@@ -46,7 +48,6 @@
       },
       "websocket": "/ws"
     },
-
     "nio": {
       "address": ":10001"
     }
