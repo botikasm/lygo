@@ -1,4 +1,10 @@
 {
+  "workspace": "./_workspace",
+  "log_level": "warn",
+  "discovery": {
+    "published_address": "localhost:10001",
+    "gateway": "localhost:10002"
+  },
   "client": {
     "enabled": false,
     "nio": {
