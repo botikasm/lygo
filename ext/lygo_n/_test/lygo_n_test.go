@@ -30,7 +30,7 @@ func TestSimpleCommunication(t *testing.T) {
 	})
 	server.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
 		data, err := lygo_io.ReadBytesFromFile(message.GetParamAsString("file"))
-		if nil!=err{
+		if nil != err {
 			return err
 		}
 		return data
@@ -75,7 +75,7 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 	fmt.Println("get.error", len(response), string(response))
 
-	response, err = client.Send("get.file", map[string]interface{}{"file":"./client.config.json"})
+	response, err = client.Send("get.file", map[string]interface{}{"file": "./client.config.json"})
 	if nil != err {
 		t.Error(err)
 		t.FailNow()
@@ -97,14 +97,13 @@ func TestSimpleCommunication(t *testing.T) {
 	appToken := string(response)
 	fmt.Println("n.sys_app_token", appToken)
 
-
 	// app.Join()
 	fmt.Println("EXITING...")
 }
 
 func TestNode(t *testing.T) {
 	node := lygo_n.NewNode(config())
-	if nil==node{
+	if nil == node {
 		t.FailNow()
 	}
 
@@ -121,8 +120,8 @@ func TestNode(t *testing.T) {
 	})
 
 	// test command
-	response, err :=node.Send("sys.version", nil)
-	if nil!=err {
+	response, err := node.Send("sys.version", nil)
+	if nil != err {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -133,8 +132,71 @@ func TestNode(t *testing.T) {
 		t.Error(errs)
 		t.FailNow()
 	}
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 	lygo_logs.Close()
+}
+
+func TestMultipleNodes(t *testing.T) {
+
+	// publisher node
+	fmt.Println("* PUBLISHER", "node10010")
+	node10010 := lygo_n.NewNode(config())
+	node10010.Settings.Discovery.Publisher.Enabled = true
+	node10010.Settings.Discovery.NetworkId = ""
+	node10010.Settings.Discovery.Publish.Enabled = false
+	node10010.Settings.Discovery.Publish.Address = "localhost:10010"
+	node10010.Settings.Workspace = "./_workspace/10010"
+	node10010.Settings.Server.Http.Hosts = nil // disable HTTP
+	node10010.Settings.Server.Nio.Address = ":10010"
+	node10010.Settings.Client.Enabled = false // disable client
+	errs := node10010.Start()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+	fmt.Println(node10010.GetStatus())
+
+	// simple node
+	fmt.Println("* NODE", "node10001")
+	node10001 := lygo_n.NewNode(config())
+	node10001.Settings.Discovery.Publisher.Enabled = false
+	node10001.Settings.Discovery.NetworkId = "net1"
+	node10001.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10001.Settings.Discovery.Publish.Enabled = true
+	node10001.Settings.Discovery.Publish.Address = "localhost:10001"
+	node10001.Settings.Discovery.Network.Enabled = true
+	node10001.Settings.Workspace = "./_workspace/10001"
+	node10001.Settings.Server.Http.Hosts = nil
+	node10001.Settings.Server.Nio.Address = ":10001"
+	node10001.Settings.Client.Nio.Address = "localhost:10010" // USES PUBLISHER AS SERVER
+	errs = node10001.Start()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+	fmt.Println(node10001.GetStatus())
+
+	// simple node
+	fmt.Println("* NODE", "node10002")
+	node10002 := lygo_n.NewNode(config())
+	node10002.Settings.Discovery.Publisher.Enabled = false
+	node10002.Settings.Discovery.NetworkId = "net1"
+	node10002.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10002.Settings.Discovery.Publish.Enabled = true
+	node10002.Settings.Discovery.Publish.Address = "localhost:10002"
+	node10002.Settings.Discovery.Network.Enabled = true
+	node10002.Settings.Workspace = "./_workspace/10002"
+	node10002.Settings.Server.Http.Hosts = nil
+	node10002.Settings.Server.Nio.Address = ":10002"
+	node10002.Settings.Client.Nio.Address = "localhost:10010" // USES PUBLISHER AS SERVER
+	errs = node10002.Start()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+	fmt.Println(node10002.GetStatus())
+
+	time.Sleep(5 * time.Second)
 }
 
 //----------------------------------------------------------------------------------------------------------------------

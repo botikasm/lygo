@@ -1,13 +1,18 @@
 package lygo_n
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_fmt"
 	"github.com/botikasm/lygo/base/lygo_paths"
+	"github.com/botikasm/lygo/base/lygo_rnd"
+	"github.com/botikasm/lygo/base/lygo_sys"
 	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"io"
+	"strings"
 	"time"
 )
 
@@ -19,9 +24,12 @@ type N struct {
 	Settings *NSettings
 
 	//-- private --//
+	uuid        string
+	statusBuff  bytes.Buffer
 	initialized bool
 	client      *lygo_n_client.NClient
 	server      *lygo_n_server.NServer
+	discovery   *NDiscovery
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -34,7 +42,20 @@ func NewNode(settings *NSettings) *N {
 
 	if nil == instance.Settings {
 		instance.Settings = new(NSettings)
+		instance.Settings.Discovery = new(NDiscoverySettings)
+		instance.Settings.Discovery.Publish = new(NDiscoveryPublishSettings)
+		instance.Settings.Discovery.Publish.Enabled = false
+		instance.Settings.Discovery.Publisher = new(NDiscoveryPublisherSettings)
+		instance.Settings.Discovery.Publisher.Enabled = false
+		instance.Settings.Discovery.Network = new(NDiscoveryNetworkSettings)
+		instance.Settings.Discovery.Network.Enabled = false
 	}
+
+	sysid, err := lygo_sys.ID()
+	if nil != err {
+		sysid = lygo_rnd.Uuid()
+	}
+	instance.uuid = fmt.Sprintf("%v", sysid)
 
 	return instance
 }
@@ -42,6 +63,55 @@ func NewNode(settings *NSettings) *N {
 // ---------------------------------------------------------------------------------------------------------------------
 //		p u b l i c
 // ---------------------------------------------------------------------------------------------------------------------
+
+func (instance *N) GetUUID() string {
+	if nil != instance {
+		return instance.uuid
+	}
+	return ""
+}
+
+func (instance *N) GetStatus() string {
+	if nil != instance {
+		var buff bytes.Buffer
+
+		if nil != instance.server {
+			buff.WriteString("------------------------\n")
+			buff.WriteString("\tSERVER\t")
+			buff.WriteString(instance.server.GetUUID() + "\n")
+			buff.WriteString(instance.indentLines(instance.server.GetStatus()))
+		}
+
+		if nil != instance.client && instance.client.IsOpen() {
+			buff.WriteString("------------------------\n")
+			buff.WriteString("\tCLIENT\t")
+			buff.WriteString(instance.client.GetUUID() + "\n")
+			buff.WriteString(instance.indentLines(instance.client.GetStatus()))
+			buff.WriteString(instance.indentLines(instance.statusBuff.String()))
+		}
+
+		return buff.String()
+	}
+	return ""
+}
+
+func (instance *N) WriteStatus(w io.Writer) (int64, error) {
+	if nil != instance {
+		var buff bytes.Buffer
+		var count int64 = 0
+
+		buff.WriteString(instance.GetStatus())
+
+		c, e := buff.WriteTo(w)
+		if nil != e {
+			return 0, e
+		}
+		count += c
+
+		return c, e
+	}
+	return 0, nil
+}
 
 func (instance *N) Start() []error {
 	if nil != instance {
@@ -106,22 +176,32 @@ func (instance *N) open() []error {
 		}
 		lygo_logs.SetOutput(lygo_logs.OUTPUT_FILE)
 
-		// client
+		// discovery
+		instance.discovery = NewNodeDiscovery(instance.uuid, instance.Settings.Discovery)
+		err := instance.discovery.Start()
+		if nil != err {
+			response = append(response, err)
+		}
+
+		// server
 		instance.server = lygo_n_server.NewNServer(instance.Settings.Server)
 		errs, warnings := instance.server.Start()
 		response = append(response, errs...)
-		logWarns(warnings)
+		instance.logWarns(warnings)
 
 		// client
 		instance.client = lygo_n_client.NewNClient(instance.Settings.Client)
 		errs, warnings = instance.client.Start()
 		response = append(response, errs...)
-		logWarns(warnings)
+		instance.logWarns(warnings)
+
+		// system message handler
+		instance.handleSystemMessages()
 
 		// check configuration
-		if len(warnings)==0{
+		if len(warnings) == 0 {
 			warnings = instance.checkConfiguration()
-			logWarns(warnings)
+			instance.logWarns(warnings)
 		}
 
 		return response
@@ -133,9 +213,18 @@ func (instance *N) close() []error {
 	if instance.initialized {
 		instance.initialized = false
 		response := make([]error, 0)
+
+		// discovery
+		if nil != instance.discovery {
+			response = append(response, instance.discovery.Stop())
+		}
+
+		// client
 		if nil != instance.client {
 			response = append(response, instance.client.Stop()...)
 		}
+
+		// server
 		if nil != instance.server {
 			response = append(response, instance.server.Stop()...)
 		}
@@ -159,15 +248,34 @@ func (instance *N) checkConfiguration() []string {
 	return response
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-//		S T A T I C
-// ---------------------------------------------------------------------------------------------------------------------
-
-func logWarns(warnings []string) {
+func (instance *N) logWarns(warnings []string) {
 	if len(warnings) > 0 {
 		for _, w := range warnings {
-			fmt.Println("WARN", lygo_fmt.FormatDate(time.Now(), "yyyy/MM/dd HH:mm"), w)
+			instance.statusBuff.WriteString(fmt.Sprintf("WARN", lygo_fmt.FormatDate(time.Now(), "yyyy/MM/dd HH:mm\n"), w))
 			lygo_logs.Warn("", w)
 		}
+	}
+}
+
+func (instance *N) indentLines(text string) string {
+	var buff bytes.Buffer
+	text = strings.ReplaceAll(text, "\r", "")
+	lines := strings.Split(text, "\n")
+	for _, line := range lines {
+		if len(line) > 0 {
+			buff.WriteString("\t\t" + line + "\n")
+		}
+	}
+	return buff.String()
+}
+
+func (instance *N) handleSystemMessages()  {
+	if nil!=instance.server && instance.server.IsOpen(){
+
+		// discovery messages
+		if nil!=instance.discovery && instance.discovery.IsEnabled(){
+			instance.server.RegisterCommand(CMD_GET_NODE_LIST, instance.discovery.getNodeList)
+		}
+
 	}
 }

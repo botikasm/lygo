@@ -3,8 +3,12 @@ package lygo_n_server
 import "github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 
 var (
-	CmdVersion  = "n.sys_version"
+	// no token required
 	CmdAppToken = "n.sys_app_token"
+
+	// token required
+	CmdVersion  = "n.sys_version"
+	CmdPing = "n.sys_ping"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -15,6 +19,8 @@ func registerInternalCommands(controller *MessagingController) {
 
 	controller.Register(CmdVersion, getVersion)
 	controller.Register(CmdAppToken, getAppToken)
+
+	controller.Register(CmdPing, doPing)
 
 }
 
@@ -28,4 +34,8 @@ func getVersion(message *lygo_n_commons.Command) interface{} {
 
 func getAppToken(message *lygo_n_commons.Command) interface{} {
 	return lygo_n_commons.AppToken
+}
+
+func doPing(message *lygo_n_commons.Command) interface{} {
+	return true
 }

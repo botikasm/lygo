@@ -5,6 +5,8 @@ import (
 	"crypto/rsa"
 	"encoding/gob"
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_rnd"
+	"github.com/botikasm/lygo/base/lygo_sys"
 	"net"
 	"sync"
 )
@@ -16,6 +18,7 @@ import (
 type NioServer struct {
 
 	//-- private --//
+	uuid       string
 	port       int
 	listener   net.Listener
 	clients    int
@@ -48,12 +51,25 @@ func NewNioServer(port int) *NioServer {
 	instance.clientsMap = make(map[string]*client)
 	instance.active = false
 
+	sysid, err := lygo_sys.ID()
+	if nil != err {
+		sysid = lygo_rnd.Uuid()
+	}
+	instance.uuid = fmt.Sprintf("[%v]:%v", sysid, port)
+
 	return instance
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
+
+func (instance *NioServer) GetUUID() string {
+	if nil != instance {
+		return instance.uuid
+	}
+	return ""
+}
 
 func (instance *NioServer) IsOpen() bool {
 	if nil != instance {

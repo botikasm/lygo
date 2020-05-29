@@ -6,6 +6,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_events"
+	"github.com/botikasm/lygo/base/lygo_rnd"
+	"github.com/botikasm/lygo/base/lygo_sys"
 	"github.com/pkg/errors"
 	"net"
 	"sync"
@@ -21,6 +23,7 @@ type NioClient struct {
 	Secure  bool
 
 	//-- private --//
+	uuid      string
 	conn      net.Conn
 	host      string
 	port      int
@@ -49,12 +52,25 @@ func NewNioClient(host string, port int) *NioClient {
 	instance.connected = false
 	instance.closed = true
 
+	sysid, err := lygo_sys.ID()
+	if nil != err {
+		sysid = lygo_rnd.Uuid()
+	}
+	instance.uuid = fmt.Sprintf("[%v]:%v", sysid, port)
+
 	return instance
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
+
+func (instance *NioClient) GetUUID() string {
+	if nil != instance {
+		return instance.uuid
+	}
+	return ""
+}
 
 func (instance *NioClient) IsOpen() bool {
 	if nil != instance {

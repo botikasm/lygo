@@ -95,12 +95,14 @@ func (instance *BoltCollection) Get(key string) (interface{}, error) {
 			b := tx.Bucket([]byte(instance.name))
 			if nil != b {
 				buf := b.Get([]byte(key))
-				err := json.Unmarshal(buf, &response)
-
-				return err
+				if nil!=buf{
+					err := json.Unmarshal(buf, &response)
+					return err
+				}
 			} else {
 				return ErrCollectionDoesNotExists
 			}
+			return nil
 		})
 		return response, err
 	}

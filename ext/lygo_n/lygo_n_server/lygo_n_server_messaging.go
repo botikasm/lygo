@@ -107,12 +107,15 @@ func (instance *MessagingController) handleWs(payload *lygo_http_server.HttpWebs
 func (instance *MessagingController) execute(message *lygo_n_commons.Message) interface{} {
 	if nil != instance {
 		commandName := message.Payload.Namespace + "." + message.Payload.Function
+
+		// check if command is token protected and validate
 		if commandName != CmdAppToken {
 			// check token
 			if lygo_n_commons.AppToken != message.Payload.AppToken {
 				return lygo_n_commons.InvalidTokenError
 			}
 		}
+
 		handler := instance.getHandler(commandName)
 		if nil != handler {
 			return handler(message.Payload)

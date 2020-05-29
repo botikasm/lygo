@@ -2,11 +2,21 @@
   "workspace": "./_workspace",
   "log_level": "warn",
   "discovery": {
-    "published_address": "localhost:10001",
-    "gateway": "localhost:10002"
+    "network_id": "net1",
+    "publishers": [],
+    "publisher": {
+      "enabled": true
+    },
+    "publish": {
+      "enabled": true,
+      "address": "localhost:10001"
+    },
+    "network": {
+      "enabled": true
+    }
   },
   "client": {
-    "enabled": false,
+    "enabled": true,
     "nio": {
       "address": "localhost:10001"
     }
@@ -14,6 +24,7 @@
   "server": {
     "enabled": true,
     "http": {
+      "websocket_endpoint": "/ws",
       "hosts": [
         {
           "addr": ":80",
@@ -51,8 +62,7 @@
         "enabled": false,
         "timeout": 30,
         "max": 10
-      },
-      "websocket": "/ws"
+      }
     },
     "nio": {
       "address": ":10001"

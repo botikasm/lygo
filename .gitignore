@@ -3,3 +3,4 @@ psw.txt
 logging.log
 ext/lygo_template/test/_temp
 blobResources.go
+db.dat

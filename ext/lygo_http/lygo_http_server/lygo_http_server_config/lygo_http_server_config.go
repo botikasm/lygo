@@ -10,6 +10,10 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type HttpServerConfig struct {
+
+	// Websocket
+	WebsocketEndpoint string `json:"websocket_endpoint"`
+
 	// HOSTS
 	Hosts []*HttpServerConfigHost `json:"hosts"`
 
@@ -47,8 +51,6 @@ type HttpServerConfig struct {
 
 	// Limiter
 	Limiter *HttpServerConfigLimiter `json:"limiter"`
-
-	WebSocketEndpoint string `json:"websocket"`
 }
 
 type HttpServerConfigHost struct {
@@ -141,6 +143,10 @@ func (instance *HttpServerConfig) String() string {
 		return string(b)
 	}
 	return ""
+}
+
+func (instance *HttpServerConfig) IsEnabled() bool {
+	return len(instance.Hosts) > 0
 }
 
 func (instance *HttpServerConfig) init() {

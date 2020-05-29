@@ -22,7 +22,8 @@ type HttpServerService struct {
 	Key string
 
 	//-- private --//
-	app *fiber.App
+	enabled bool
+	app     *fiber.App
 
 	config           *lygo_http_server_config.HttpServerConfig
 	configHost       *lygo_http_server_config.HttpServerConfigHost
@@ -50,7 +51,7 @@ func NewServerService(key string,
 	instance := new(HttpServerService)
 	instance.Key = key
 
-	instance.app = fiber.New()
+	// fiber settings
 	instance.config = config
 	instance.configHost = host
 	instance.configRoute = route
@@ -60,18 +61,30 @@ func NewServerService(key string,
 	instance.callbackError = callbackError
 	instance.callbackLimitReached = callbackLimitReached
 
+	instance.enabled = config.IsEnabled()
+	if instance.enabled {
+		instance.app = fiber.New()
+	}
+
 	return instance
 }
 
+func (instance *HttpServerService) IsEnabled() bool {
+	if nil != instance {
+		return instance.enabled
+	}
+	return false
+}
+
 func (instance *HttpServerService) Shutdown() error {
-	if nil != instance && nil != instance.app {
+	if nil != instance && instance.enabled && nil != instance.app {
 		return instance.app.Shutdown()
 	}
 	return nil
 }
 
 func (instance *HttpServerService) Open() {
-	if nil != instance && nil != instance.app {
+	if nil != instance && instance.enabled && nil != instance.app {
 		instance.init()
 		go instance.listen()
 	}

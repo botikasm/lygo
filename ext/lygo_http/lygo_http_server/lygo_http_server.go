@@ -29,6 +29,7 @@ type HttpServer struct {
 	Route *lygo_http_server_config.HttpServerConfigRoute
 
 	//-- private --//
+	enabled    bool
 	services   map[string]*HttpServerService
 	middleware []*lygo_http_server_config.HttpServerConfigRouteItem
 	websocket  []*HttpServerConfigRouteWebsocket
@@ -55,6 +56,8 @@ func NewHttpServer(config *lygo_http_server_config.HttpServerConfig) *HttpServer
 	instance.services = make(map[string]*HttpServerService)
 	instance.stopChan = make(chan bool, 1)
 
+	instance.enabled = len(config.Hosts) > 0
+
 	return instance
 }
 
@@ -62,30 +65,38 @@ func NewHttpServer(config *lygo_http_server_config.HttpServerConfig) *HttpServer
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func (instance *HttpServer) IsEnabled() bool {
+	if nil != instance {
+		return instance.enabled
+	}
+	return false
+}
+
 func (instance *HttpServer) Start() error {
-	if !instance.started {
-		if nil == instance.Config {
-			return errorInvalidConfiguration
+	if nil != instance {
+		if instance.enabled && !instance.started {
+			if nil == instance.Config {
+				return errorInvalidConfiguration
+			}
+			instance.started = true
+			instance.stopped = false
+
+			instance.initConfig()
+
+			instance.serve()
 		}
-		instance.started = true
-		instance.stopped = false
-
-		instance.initConfig()
-
-		instance.serve()
-
 	}
 	return nil
 }
 
 func (instance *HttpServer) Join() {
-	if !instance.stopped {
+	if instance.enabled && !instance.stopped {
 		<-instance.stopChan
 	}
 }
 
 func (instance *HttpServer) Stop() {
-	if !instance.stopped {
+	if instance.enabled && !instance.stopped {
 		for _, service := range instance.services {
 			if nil != service {
 				_ = service.Shutdown()
@@ -124,7 +135,7 @@ func (instance *HttpServer) Websocket(args ...interface{}) {
 	switch len(args) {
 	case 1:
 		if v, b := args[0].(func(ctx *HttpWebsocketConn)); b {
-			item.Path = instance.Config.WebSocketEndpoint
+			item.Path = instance.Config.WebsocketEndpoint
 			if len(item.Path) == 0 {
 				item.Path = "/ws"
 			}
@@ -152,15 +163,17 @@ func (instance *HttpServer) serve() {
 	// configure
 	config := instance.Config
 
-	for _, host := range config.Hosts {
-		key := host.Address
-		if _, ok := instance.services[key]; !ok {
-			// creates service and add to internal pool
-			service := NewServerService(key,
-				instance.Config, host, instance.Route, instance.middleware, instance.websocket,
-				instance.onEndpointError, instance.CallbackLimitReached)
-			service.Open()
-			instance.services[key] = service
+	if instance.enabled {
+		for _, host := range config.Hosts {
+			key := host.Address
+			if _, ok := instance.services[key]; !ok {
+				// creates service and add to internal pool
+				service := NewServerService(key,
+					instance.Config, host, instance.Route, instance.middleware, instance.websocket,
+					instance.onEndpointError, instance.CallbackLimitReached)
+				service.Open()
+				instance.services[key] = service
+			}
 		}
 	}
 }

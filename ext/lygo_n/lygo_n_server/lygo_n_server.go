@@ -1,6 +1,7 @@
 package lygo_n_server
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_nio"
@@ -10,6 +11,7 @@ import (
 	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"github.com/gofiber/fiber"
+	"io"
 )
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -21,11 +23,12 @@ type NServer struct {
 	OnMessage MessageFallbackHandler // handle all messages (http, nio)
 
 	//-- private --//
-	initialized bool
-	messaging   *MessagingController
-	events      *lygo_events.Emitter
-	server      *lygo_http_server.HttpServer
-	nio         *lygo_nio.NioServer
+	initialized  bool
+	statusBuffer bytes.Buffer
+	messaging    *MessagingController
+	events       *lygo_events.Emitter
+	server       *lygo_http_server.HttpServer
+	nio          *lygo_nio.NioServer
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,10 +57,38 @@ func NewNServer(settings *NServerSettings) *NServer {
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func (instance *NServer) IsOpen() bool {
+	if nil != instance {
+		return nil != instance.nio && instance.nio.IsOpen()
+	}
+	return false
+}
+
+func (instance *NServer) GetUUID() string {
+	if nil != instance {
+		return instance.nio.GetUUID()
+	}
+	return ""
+}
+
+func (instance *NServer) GetStatus() string {
+	if nil != instance {
+		return instance.statusBuffer.String()
+	}
+	return ""
+}
+
+func (instance *NServer) WriteStatus(w io.Writer) (int64, error) {
+	if nil != instance {
+		return instance.statusBuffer.WriteTo(w)
+	}
+	return 0, nil
+}
+
 func (instance *NServer) Start() ([]error, []string) {
 	if nil != instance {
 		if !instance.initialized {
-			return  instance.init()
+			return instance.init()
 		}
 		return []error{}, []string{}
 	}
@@ -130,26 +161,30 @@ func (instance *NServer) init() ([]error, []string) {
 	if instance.Settings.Enabled {
 		// http
 		if nil != instance.Server() {
-			instance.server.CallbackError = instance.onError
-			instance.server.CallbackLimitReached = instance.onLimit
-			// enable websocket
-			websocket := instance.server.Config.WebSocketEndpoint
-			if len(websocket) > 0 {
-				instance.server.Websocket(func(ws *lygo_http_server.HttpWebsocketConn) {
-					ws.OnMessage(instance.handleWs)
-				})
-			}
-			err := instance.server.Start()
-			if nil == err {
-				for _, host := range instance.Settings.Http.Hosts {
-					fmt.Println("HTTP SERVER LISTENING AT:", host.Address)
+			if instance.server.IsEnabled() {
+				instance.server.CallbackError = instance.onError
+				instance.server.CallbackLimitReached = instance.onLimit
+				// enable websocket
+				websocket := instance.server.Config.WebsocketEndpoint
+				if len(websocket) > 0 {
+					instance.server.Websocket(func(ws *lygo_http_server.HttpWebsocketConn) {
+						ws.OnMessage(instance.handleWs)
+					})
+				}
+				err := instance.server.Start()
+				if nil == err {
+					for _, host := range instance.Settings.Http.Hosts {
+						instance.statusBuffer.WriteString(fmt.Sprintln("HTTP SERVER LISTENING AT:", host.Address))
+					}
+				} else {
+					instance.statusBuffer.WriteString(fmt.Sprintln("HTTP SERVER ERROR:", err))
+					responseErrs = append(responseErrs, err)
+				}
+				if len(websocket) > 0 {
+					instance.statusBuffer.WriteString(fmt.Sprintln("WEBSOCKET RESPONDING AT:", instance.server.Config.WebsocketEndpoint))
 				}
 			} else {
-				fmt.Println("HTTP SERVER ERROR:", err)
-				responseErrs = append(responseErrs, err)
-			}
-			if len(websocket) > 0 {
-				fmt.Println("WEBSOCKET RESPONDING AT:", instance.server.Config.WebSocketEndpoint)
+				instance.statusBuffer.WriteString(fmt.Sprintln("WEB-SERVER IS NOT ENABLED"))
 			}
 		}
 
@@ -159,9 +194,9 @@ func (instance *NServer) init() ([]error, []string) {
 			err := instance.nio.Open()
 			if nil == err {
 				instance.nio.OnMessage(instance.messaging.handleNioMessage)
-				fmt.Println("NIO SERVER LISTENING ON PORT:", instance.Settings.Nio.Port())
+				instance.statusBuffer.WriteString(fmt.Sprintln("NIO SERVER LISTENING ON PORT:", instance.Settings.Nio.Port()))
 			} else {
-				fmt.Println("NIO SERVER ERROR:", err)
+				instance.statusBuffer.WriteString(fmt.Sprintln("NIO SERVER ERROR:", err))
 				responseErrs = append(responseErrs, err)
 			}
 		}

@@ -1,6 +1,8 @@
 package lygo_n_client
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_events"
@@ -8,6 +10,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"io"
 	"strings"
 )
 
@@ -19,19 +22,36 @@ type NClient struct {
 	Settings *NClientSettings
 
 	//-- private --//
-	initialized bool
-	appToken    string
-	events      *lygo_events.Emitter
-	nio         *lygo_nio.NioClient
+	initialized  bool
+	appToken     string
+	statusBuffer bytes.Buffer
+	events       *lygo_events.Emitter
+	nio          *lygo_nio.NioClient
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewNClient(settings *NClientSettings) *NClient {
+func NewNClient(args ...interface{}) *NClient {
 	instance := new(NClient)
-	instance.Settings = settings //lygo_http_server.NewHttpServer(&settings.HttpServerConfig)
+
+	if len(args) > 0 {
+		if len(args) == 1 {
+			if v, b := args[0].(*NClientSettings); b {
+				instance.Settings = v //lygo_http_server.NewHttpServer(&settings.HttpServerConfig)
+			}
+		} else if len(args) == 2 {
+			if host, b := args[0].(string); b {
+				if port, b := args[1].(int); b {
+					instance.Settings = new(NClientSettings)
+					instance.Settings.Nio = new(lygo_nio.NioSettings)
+					instance.Settings.Enabled = true
+					instance.Settings.Nio.Address = fmt.Sprintf("%v:%v", host, port)
+				}
+			}
+		}
+	}
 
 	if nil == instance.Settings {
 		instance.Settings = new(NClientSettings)
@@ -46,6 +66,26 @@ func NewNClient(settings *NClientSettings) *NClient {
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
+func (instance *NClient) GetUUID() string {
+	if nil != instance {
+		return instance.nio.GetUUID()
+	}
+	return ""
+}
+
+func (instance *NClient) GetStatus() string {
+	if nil != instance {
+		return instance.statusBuffer.String()
+	}
+	return ""
+}
+
+func (instance *NClient) WriteStatus(w io.Writer) (int64, error) {
+	if nil != instance {
+		return instance.statusBuffer.WriteTo(w)
+	}
+	return 0, nil
+}
 
 func (instance *NClient) IsOpen() bool {
 	if nil != instance {
