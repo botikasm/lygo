@@ -1,4 +1,4 @@
-package lygo_n_host
+package lygo_n_net
 
 import "github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 

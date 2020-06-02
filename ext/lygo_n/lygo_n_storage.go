@@ -185,28 +185,28 @@ func (instance *NStorage) UnlockNodes(networkId string) {
 	}
 }
 
-func (instance *NStorage) AddPublisher(address NAddress) map[string]interface{} {
+func (instance *NStorage) AddPublisher(address lygo_n_commons.NAddress) map[string]interface{} {
 	if nil != instance {
 		return instance.addItem(COLL_PUBLISHERS, address, "")
 	}
 	return nil
 }
 
-func (instance *NStorage) RemovePublisher(address NAddress) error {
+func (instance *NStorage) RemovePublisher(address lygo_n_commons.NAddress) error {
 	if nil != instance {
 		return instance.removeItem(COLL_PUBLISHERS, address)
 	}
 	return nil
 }
 
-func (instance *NStorage) AddNode(address NAddress, networkId string) map[string]interface{} {
+func (instance *NStorage) AddNode(address lygo_n_commons.NAddress, networkId string) map[string]interface{} {
 	if nil != instance {
 		return instance.addItem(COLL_NODES, address, networkId)
 	}
 	return nil
 }
 
-func (instance *NStorage) RemoveNode(address NAddress) error {
+func (instance *NStorage) RemoveNode(address lygo_n_commons.NAddress) error {
 	if nil != instance {
 		return instance.removeItem(COLL_NODES, address)
 	}
@@ -221,7 +221,7 @@ func (instance *NStorage) init() {
 
 }
 
-func (instance *NStorage) addItem(collName string, address NAddress, networkId string) map[string]interface{} {
+func (instance *NStorage) addItem(collName string, address lygo_n_commons.NAddress, networkId string) map[string]interface{} {
 	if nil != instance {
 		instance.mux.Lock()
 		defer instance.mux.Unlock()
@@ -252,7 +252,7 @@ func (instance *NStorage) addItem(collName string, address NAddress, networkId s
 	return nil
 }
 
-func (instance *NStorage) removeItem(collName string, address NAddress) error {
+func (instance *NStorage) removeItem(collName string, address lygo_n_commons.NAddress) error {
 	if nil != instance {
 		instance.mux.Lock()
 		defer instance.mux.Unlock()

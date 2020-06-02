@@ -9,9 +9,8 @@ import (
 	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_n"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_conn"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_net"
 	"github.com/gofiber/fiber"
 	"testing"
 	"time"
@@ -52,7 +51,7 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 
 
-	client := lygo_n_conn.NewNConn(configCli())
+	client := lygo_n_net.NewNConn(configCli())
 	errs, _ = client.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
@@ -197,7 +196,7 @@ func TestMultipleNodes(t *testing.T) {
 	node10001.Settings.Name = "node10001"
 	node10001.Settings.Discovery.Publisher.Enabled = false
 	node10001.Settings.Discovery.NetworkId = NETWORK_ID
-	node10001.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10001.Settings.Discovery.Publishers = []lygo_n_commons.NAddress{"localhost:10010"}
 	node10001.Settings.Discovery.Publish.Enabled = true
 	node10001.Settings.Discovery.Publish.Address = "localhost:10001"
 	node10001.Settings.Workspace = "./_workspace/10001"
@@ -225,7 +224,7 @@ func TestMultipleNodes(t *testing.T) {
 	node10002.Settings.Name = "node10002"
 	node10002.Settings.Discovery.Publisher.Enabled = false
 	node10002.Settings.Discovery.NetworkId = NETWORK_ID
-	node10002.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10002.Settings.Discovery.Publishers = []lygo_n_commons.NAddress{"localhost:10010"}
 	node10002.Settings.Discovery.Publish.Enabled = true
 	node10002.Settings.Discovery.Publish.Address = "localhost:10002"
 	node10002.Settings.Workspace = "./_workspace/10002"
@@ -252,7 +251,7 @@ func TestMultipleNodes(t *testing.T) {
 	node10003.Settings.Name = "node10003"
 	node10003.Settings.Discovery.Publisher.Enabled = false
 	node10003.Settings.Discovery.NetworkId = NETWORK_ID
-	node10003.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10003.Settings.Discovery.Publishers = []lygo_n_commons.NAddress{"localhost:10010"}
 	node10003.Settings.Discovery.Publish.Enabled = true
 	node10003.Settings.Discovery.Publish.Address = "localhost:10003"
 	node10003.Settings.Workspace = "./_workspace/10003"
@@ -342,25 +341,25 @@ func TestMultipleNodes(t *testing.T) {
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func config() *lygo_n.NSettings {
+func config() *lygo_n_commons.NSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.node.json")
-	config := new(lygo_n.NSettings)
+	config := new(lygo_n_commons.NSettings)
 	config.Parse(text_cfg)
 
 	return config
 }
 
-func configSrv() *lygo_n_host.NHostSettings {
+func configSrv() *lygo_n_commons.NHostSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.server.json")
-	config := new(lygo_n_host.NHostSettings)
+	config := new(lygo_n_commons.NHostSettings)
 	config.Parse(text_cfg)
 
 	return config
 }
 
-func configCli() *lygo_n_conn.NClientSettings {
+func configCli() *lygo_n_commons.NConnSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.client.json")
-	config := new(lygo_n_conn.NClientSettings)
+	config := new(lygo_n_commons.NConnSettings)
 	config.Parse(text_cfg)
 
 	return config

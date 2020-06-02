@@ -1,4 +1,4 @@
-package lygo_n_conn
+package lygo_n_net
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"io"
 	"strings"
 )
@@ -20,7 +19,7 @@ import (
 // ---------------------------------------------------------------------------------------------------------------------
 
 type NConn struct {
-	Settings *NClientSettings
+	Settings *lygo_n_commons.NConnSettings
 
 	//-- private --//
 	initialized  bool
@@ -39,13 +38,13 @@ func NewNConn(args ...interface{}) *NConn {
 
 	if len(args) > 0 {
 		if len(args) == 1 {
-			if v, b := args[0].(*NClientSettings); b {
+			if v, b := args[0].(*lygo_n_commons.NConnSettings); b {
 				instance.Settings = v //lygo_http_server.NewHttpServer(&settings.HttpServerConfig)
 			}
 		} else if len(args) == 2 {
 			if host, b := args[0].(string); b {
 				if port, b := args[1].(int); b {
-					instance.Settings = new(NClientSettings)
+					instance.Settings = new(lygo_n_commons.NConnSettings)
 					instance.Settings.Nio = new(lygo_nio.NioSettings)
 					instance.Settings.Enabled = true
 					instance.Settings.Nio.Address = fmt.Sprintf("%v:%v", host, port)
@@ -55,7 +54,7 @@ func NewNConn(args ...interface{}) *NConn {
 	}
 
 	if nil == instance.Settings {
-		instance.Settings = new(NClientSettings)
+		instance.Settings = new(lygo_n_commons.NConnSettings)
 		instance.Settings.Nio = new(lygo_nio.NioSettings)
 	}
 
@@ -224,7 +223,7 @@ func (instance *NConn) getAppToken() string {
 				Function:  "",
 				Params:    nil,
 			}
-			command.SetName(lygo_n_host.CmdAppToken)
+			command.SetName(CmdAppToken)
 			response := instance.SendCommand(command)
 			if len(response.Error) == 0 {
 				s := lygo_conv.ToString(response.Data)

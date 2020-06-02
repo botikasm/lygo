@@ -1,10 +1,11 @@
-package lygo_n
+package lygo_n_commons
 
 import (
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_json"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
+	"github.com/botikasm/lygo/base/lygo_nio"
+	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_config"
 	"strings"
 )
 
@@ -17,8 +18,8 @@ type NSettings struct {
 	Workspace string `json:"workspace"`
 	LogLevel  string `json:"log_level"` // warn, info, error, debug
 
-	Discovery *NDiscoverySettings        `json:"discovery"`
-	Server    *lygo_n_host.NHostSettings `json:"server"`
+	Discovery *NDiscoverySettings `json:"discovery"`
+	Server    *NHostSettings      `json:"server"`
 }
 
 func (instance *NSettings) Parse(text string) error {
@@ -118,4 +119,39 @@ func (instance *NDiscoveryPublishSettings) IsEnabled() bool {
 
 type NDiscoveryNetworkSettings struct {
 	Enabled bool `json:"enabled"`
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	NHostSettings
+//----------------------------------------------------------------------------------------------------------------------
+
+type NHostSettings struct {
+	Enabled bool                                      `json:"enabled"`
+	Nio     *lygo_nio.NioSettings                     `json:"nio"`
+	Http    *lygo_http_server_config.HttpServerConfig `json:"http"`
+}
+
+func (instance *NHostSettings) Parse(text string) error {
+	return lygo_json.Read(text, &instance)
+}
+
+func (instance *NHostSettings) String() string {
+	return lygo_json.Stringify(instance)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//	NConnSettings
+//----------------------------------------------------------------------------------------------------------------------
+
+type NConnSettings struct {
+	Enabled bool                  `json:"enabled"`
+	Nio     *lygo_nio.NioSettings `json:"nio"`
+}
+
+func (instance *NConnSettings) Parse(text string) error {
+	return lygo_json.Read(text, &instance)
+}
+
+func (instance *NConnSettings) String() string {
+	return lygo_json.Stringify(instance)
 }

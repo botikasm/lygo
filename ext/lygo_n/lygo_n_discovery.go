@@ -6,8 +6,8 @@ import (
 	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_reflect"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_conn"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_net"
 	"time"
 )
 
@@ -22,7 +22,7 @@ const (
 type NDiscovery struct {
 	initialized bool
 	uuid        string
-	config      *NDiscoverySettings
+	config      *lygo_n_commons.NDiscoverySettings
 	events      *lygo_events.Emitter
 	storage     *NStorage
 }
@@ -31,7 +31,7 @@ type NDiscovery struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewNodeDiscovery(events *lygo_events.Emitter, uuid string, config *NDiscoverySettings) *NDiscovery {
+func NewNodeDiscovery(events *lygo_events.Emitter, uuid string, config *lygo_n_commons.NDiscoverySettings) *NDiscovery {
 	instance := new(NDiscovery)
 	instance.config = config
 	instance.events = events
@@ -119,15 +119,15 @@ func (instance *NDiscovery) Nodes() []string {
 	return response
 }
 
-func (instance *NDiscovery) AcquireNode() *lygo_n_conn.NConn {
-	var response *lygo_n_conn.NConn = nil
+func (instance *NDiscovery) AcquireNode() *lygo_n_net.NConn {
+	var response *lygo_n_net.NConn = nil
 	nodes := instance.Nodes()
 	if len(nodes) > 0 {
 		for _, node := range nodes {
-			na := NewNAddress(node)
+			na := lygo_n_commons.NewNAddress(node)
 			host := na.Host()
 			port := na.Port()
-			conn := lygo_n_conn.NewNConn(host, port)
+			conn := lygo_n_net.NewNConn(host, port)
 			errs, _ := conn.Start()
 			if len(errs) == 0 {
 				if instance.storage.IsLockedNode(node) {
@@ -153,20 +153,20 @@ func (instance *NDiscovery) AcquireNode() *lygo_n_conn.NConn {
 	return response
 }
 
-func (instance *NDiscovery) ReleaseNode(conn *lygo_n_conn.NConn) {
+func (instance *NDiscovery) ReleaseNode(conn *lygo_n_net.NConn) {
 	if nil != conn {
 		defer conn.Stop()
 		instance.storage.UnlockNode(conn.GetAddress())
 	}
 }
 
-func (instance *NDiscovery) NewPublisherConnection() *lygo_n_conn.NConn {
+func (instance *NDiscovery) NewPublisherConnection() *lygo_n_net.NConn {
 	nodes := instance.Publishers()
 	for _, node := range nodes {
-		na := NewNAddress(node)
+		na := lygo_n_commons.NewNAddress(node)
 		host := na.Host()
 		port := na.Port()
-		conn := lygo_n_conn.NewNConn(host, port)
+		conn := lygo_n_net.NewNConn(host, port)
 		errs, _ := conn.Start()
 		if len(errs) == 0 {
 			return conn
@@ -248,7 +248,7 @@ func (instance *NDiscovery) discover() {
 		for _, publisher := range publishers {
 			// avoid itself
 			if !instance.config.Publish.IsAddress(publisher) {
-				na := NewNAddress(publisher)
+				na := lygo_n_commons.NewNAddress(publisher)
 				go instance.syncWithPublisher(networkId, na)
 			}
 		}
@@ -259,10 +259,10 @@ func (instance *NDiscovery) discover() {
 	instance.events.EmitAsync(lygo_n_commons.EventQuitDiscovery)
 }
 
-func (instance *NDiscovery) syncWithPublisher(networkId string, publisherAddress NAddress) {
+func (instance *NDiscovery) syncWithPublisher(networkId string, publisherAddress lygo_n_commons.NAddress) {
 	host := publisherAddress.Host()
 	port := publisherAddress.Port()
-	publisherConn := lygo_n_conn.NewNConn(host, port)
+	publisherConn := lygo_n_net.NewNConn(host, port)
 	errs, _ := publisherConn.Start()
 	defer publisherConn.Stop()
 
@@ -287,7 +287,7 @@ func (instance *NDiscovery) syncWithPublisher(networkId string, publisherAddress
 		instance.removePublisher(publisherAddress)
 	}
 }
-func (instance *NDiscovery) registerAsNode(publisherConn *lygo_n_conn.NConn, networkId string) error {
+func (instance *NDiscovery) registerAsNode(publisherConn *lygo_n_net.NConn, networkId string) error {
 	if instance.config.Publish.IsEnabled() {
 		response := instance.sendCommand(publisherConn, lygo_n_commons.CMD_REGISTER_NODE, map[string]interface{}{
 			"address":    instance.config.Publish.Address.String(),
@@ -298,7 +298,7 @@ func (instance *NDiscovery) registerAsNode(publisherConn *lygo_n_conn.NConn, net
 	return nil
 }
 
-func (instance *NDiscovery) syncNodes(publisherConn *lygo_n_conn.NConn, networkId string) error {
+func (instance *NDiscovery) syncNodes(publisherConn *lygo_n_net.NConn, networkId string) error {
 	// get list of nodes
 	response, err := instance.sendCommandRetMap(publisherConn, lygo_n_commons.CMD_GET_NODE_LIST, map[string]interface{}{
 		"network_id": networkId,
@@ -322,12 +322,12 @@ func (instance *NDiscovery) syncNodes(publisherConn *lygo_n_conn.NConn, networkI
 	return nil
 }
 
-func (instance *NDiscovery) removePublisher(na NAddress) {
+func (instance *NDiscovery) removePublisher(na lygo_n_commons.NAddress) {
 	_ = instance.storage.RemovePublisher(na)
 	instance.events.EmitAsync(lygo_n_commons.EventRemovedPublisher, na.String())
 }
 
-func (instance *NDiscovery) removeNode(na NAddress) {
+func (instance *NDiscovery) removeNode(na lygo_n_commons.NAddress) {
 	_ = instance.storage.RemoveNode(na)
 	instance.events.EmitAsync(lygo_n_commons.EventRemovedNode, na.String())
 }
@@ -339,7 +339,7 @@ func (instance *NDiscovery) onNewPublisher(items []interface{}) {
 			if count < nodeLimit {
 				// add node to database
 				key := lygo_reflect.GetString(item, "_key")
-				instance.storage.AddPublisher(NewNAddress(key))
+				instance.storage.AddPublisher(lygo_n_commons.NewNAddress(key))
 				instance.events.EmitAsync(lygo_n_commons.EventNewPublisher, count, key)
 			}
 		}
@@ -354,7 +354,7 @@ func (instance *NDiscovery) onNewNode(items []interface{}) {
 			count := instance.storage.CountNodes(networkId)
 			if count < nodeLimit {
 				// add node to database
-				instance.storage.AddNode(NewNAddress(key), networkId)
+				instance.storage.AddNode(lygo_n_commons.NewNAddress(key), networkId)
 				instance.events.EmitAsync(lygo_n_commons.EventNewNode, count, key, networkId)
 			}
 		}
@@ -365,11 +365,11 @@ func (instance *NDiscovery) onNewNode(items []interface{}) {
 //	c o m m a n d    s e n d e r
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *NDiscovery) sendCommand(conn *lygo_n_conn.NConn, command string, params map[string]interface{}) *lygo_n_commons.Response {
+func (instance *NDiscovery) sendCommand(conn *lygo_n_net.NConn, command string, params map[string]interface{}) *lygo_n_commons.Response {
 	return conn.Send(command, params)
 }
 
-func (instance *NDiscovery) sendCommandRetMap(conn *lygo_n_conn.NConn, command string, params map[string]interface{}) (map[string]interface{}, error) {
+func (instance *NDiscovery) sendCommandRetMap(conn *lygo_n_net.NConn, command string, params map[string]interface{}) (map[string]interface{}, error) {
 	response := conn.Send(command, params)
 	if response.HasError() {
 		return nil, response.GetError()
@@ -402,7 +402,7 @@ func (instance *NDiscovery) registerNode(message *lygo_n_commons.Command) interf
 	if nil != instance.storage {
 		address := message.GetParamAsString("address")
 		networkId := message.GetParamAsString("network_id")
-		return instance.storage.AddNode(NewNAddress(address), networkId)
+		return instance.storage.AddNode(lygo_n_commons.NewNAddress(address), networkId)
 	}
 	return nil
 }

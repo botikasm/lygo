@@ -1,4 +1,4 @@
-package lygo_n_host
+package lygo_n_net
 
 import (
 	"github.com/botikasm/lygo/base/lygo_conv"

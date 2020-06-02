@@ -1,4 +1,4 @@
-package lygo_n_host
+package lygo_n_net
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 
 type NHost struct {
 	Info      *lygo_n_commons.NHostInfo
-	Settings  *NHostSettings
+	Settings  *lygo_n_commons.NHostSettings
 	OnMessage MessageFallbackHandler // handle all messages (http, nio)
 
 	//-- private --//
@@ -32,7 +32,7 @@ type NHost struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewNHost(settings *NHostSettings) *NHost {
+func NewNHost(settings *lygo_n_commons.NHostSettings) *NHost {
 	instance := new(NHost)
 	instance.Info = new(lygo_n_commons.NHostInfo)
 	instance.Info.Name = "" // assigned later from outside
@@ -42,7 +42,7 @@ func NewNHost(settings *NHostSettings) *NHost {
 	instance.Settings = settings //lygo_http_server.NewHttpServer(&settings.HttpServerConfig)
 
 	if nil == instance.Settings {
-		instance.Settings = new(NHostSettings)
+		instance.Settings = new(lygo_n_commons.NHostSettings)
 		instance.Settings.Enabled = false
 		instance.Settings.Http = lygo_http_server_config.NewHttpServerConfig()
 		instance.Settings.Nio = new(lygo_nio.NioSettings)

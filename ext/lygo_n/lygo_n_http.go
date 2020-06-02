@@ -10,7 +10,6 @@ import (
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_types"
 	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"github.com/gofiber/fiber"
 	"io"
 )
@@ -20,7 +19,7 @@ import (
 // ---------------------------------------------------------------------------------------------------------------------
 
 type NHttp struct {
-	Settings           *lygo_n_host.NHostSettings
+	Settings           *lygo_n_commons.NHostSettings
 	SendCommandHandler func(commandName string, params map[string]interface{}) *lygo_n_commons.Response
 
 	//-- private --//
@@ -34,13 +33,13 @@ type NHttp struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewNHttp(settings *lygo_n_host.NHostSettings) *NHttp {
+func NewNHttp(settings *lygo_n_commons.NHostSettings) *NHttp {
 	instance := new(NHttp)
 	instance.initialized = false
 	instance.Settings = settings //lygo_http_server.NewHttpServer(&settings.HttpServerConfig)
 
 	if nil == instance.Settings {
-		instance.Settings = new(lygo_n_host.NHostSettings)
+		instance.Settings = new(lygo_n_commons.NHostSettings)
 		instance.Settings.Enabled = false
 		instance.Settings.Http = lygo_http_server_config.NewHttpServerConfig()
 	}

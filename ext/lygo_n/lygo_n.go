@@ -11,8 +11,7 @@ import (
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_logs"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_conn"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_net"
 	"io"
 	"strings"
 	"time"
@@ -23,14 +22,14 @@ import (
 // ---------------------------------------------------------------------------------------------------------------------
 
 type N struct {
-	Settings *NSettings
+	Settings *lygo_n_commons.NSettings
 
 	//-- private --//
 	uuid        string
 	statusBuff  bytes.Buffer
 	initialized bool
-	server      *lygo_n_host.NHost // nio server
-	http        *NHttp             // http interface
+	server      *lygo_n_net.NHost // nio server
+	http        *NHttp            // http interface
 	discovery   *NDiscovery
 	events      *lygo_events.Emitter
 }
@@ -39,16 +38,16 @@ type N struct {
 //		c o n s t r u c t o r
 // ---------------------------------------------------------------------------------------------------------------------
 
-func NewNode(settings *NSettings) *N {
+func NewNode(settings *lygo_n_commons.NSettings) *N {
 	instance := new(N)
 	instance.Settings = settings
 
 	if nil == instance.Settings {
-		instance.Settings = new(NSettings)
-		instance.Settings.Discovery = new(NDiscoverySettings)
-		instance.Settings.Discovery.Publish = new(NDiscoveryPublishSettings)
+		instance.Settings = new(lygo_n_commons.NSettings)
+		instance.Settings.Discovery = new(lygo_n_commons.NDiscoverySettings)
+		instance.Settings.Discovery.Publish = new(lygo_n_commons.NDiscoveryPublishSettings)
 		instance.Settings.Discovery.Publish.Enabled = false
-		instance.Settings.Discovery.Publisher = new(NDiscoveryPublisherSettings)
+		instance.Settings.Discovery.Publisher = new(lygo_n_commons.NDiscoveryPublisherSettings)
 		instance.Settings.Discovery.Publisher.Enabled = false
 	}
 
@@ -157,7 +156,7 @@ func (instance *N) Http() *lygo_http_server.HttpServer {
 //		m e s s a g e    h a n d l e r s
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (instance *N) RegisterCommand(command string, handler lygo_n_host.CommandHandler) {
+func (instance *N) RegisterCommand(command string, handler lygo_n_net.CommandHandler) {
 	if nil != instance {
 		server := instance.getServer()
 		if nil != server {
@@ -264,11 +263,11 @@ func (instance *N) getHttp() *NHttp {
 	return nil
 }
 
-func (instance *N) getServer() *lygo_n_host.NHost {
+func (instance *N) getServer() *lygo_n_net.NHost {
 	if nil != instance {
 		if nil == instance.server {
 			if nil != instance.Settings.Server && instance.Settings.Server.Enabled {
-				instance.server = lygo_n_host.NewNHost(instance.Settings.Server)
+				instance.server = lygo_n_net.NewNHost(instance.Settings.Server)
 			}
 		}
 		return instance.server
@@ -306,11 +305,11 @@ func (instance *N) logWarns(warnings []string) {
 		}
 	}
 }
-func (instance *N) getSelfHostedConn() *lygo_n_conn.NConn {
+func (instance *N) getSelfHostedConn() *lygo_n_net.NConn {
 	if nil != instance.server && instance.server.IsOpen() {
 		host := "localhost"
 		port := instance.Settings.Server.Nio.Port()
-		conn := lygo_n_conn.NewNConn(host, port)
+		conn := lygo_n_net.NewNConn(host, port)
 		errs, _ := conn.Start()
 		if len(errs) == 0 {
 			return conn
@@ -331,7 +330,7 @@ func (instance *N) indentLines(text string) string {
 	return buff.String()
 }
 
-func (instance *N) handleSystemMessages(server *lygo_n_host.NHost) {
+func (instance *N) handleSystemMessages(server *lygo_n_net.NHost) {
 	if nil != server && server.IsOpen() {
 
 		// discovery messages
