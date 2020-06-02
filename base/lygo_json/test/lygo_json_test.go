@@ -59,3 +59,29 @@ func TestArray(t *testing.T) {
 	s := lygo_json.Stringify(a)
 	fmt.Println(s)
 }
+
+func TestTryArray(t *testing.T) {
+	if v, b := lygo_json.StringToArray("[1,2,3, \"hello\"]"); b {
+		fmt.Println(v)
+	} else {
+		t.Error("Unable to parse")
+	}
+	if v, b := lygo_json.StringToArray("AAA"); !b {
+		fmt.Println("AAA", "is not a JSON object")
+	} else {
+		t.Error("Should not parse this:", v)
+	}
+}
+
+func TestTryObject(t *testing.T) {
+	if v, b := lygo_json.StringToMap("{\"name\":\"mario\"}"); b {
+		fmt.Println(v)
+	} else {
+		t.Error("Unable to parse")
+	}
+	if v, b := lygo_json.StringToMap("AAA"); !b {
+		fmt.Println("AAA", "is not a JSON object")
+	} else {
+		t.Error("Should not parse this:", v)
+	}
+}

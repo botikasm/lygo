@@ -68,11 +68,16 @@ func ToString(val interface{}) string {
 	}
 
 	// array
-	if aa, tt := IsArray(val); aa {
+	if aa, _ := IsArray(val); aa {
 		// byte array??
 		if ba, b := val.([]byte); b {
 			return string(ba)
 		} else {
+			data, err := json.Marshal(val)
+			if nil == err {
+				return string(data)
+			}
+			/*
 			response := []string{}
 			// array := make([]interface{}, tt.Len())
 			for i := 0; i < tt.Len(); i++ {
@@ -81,6 +86,7 @@ func ToString(val interface{}) string {
 				response = append(response, s)
 			}
 			return "[" + strings.Join(response, ",") + "]"
+			*/
 		}
 	}
 
@@ -226,13 +232,13 @@ func ToBool(val interface{}) bool {
 		}
 	}
 	if a, b := val.([]byte); b {
-		if len(a)>1{
+		if len(a) > 1 {
 			v, err := strconv.ParseBool(string(a))
 			if nil == err {
 				return v
 			}
 		} else {
-			if a[0]==0{
+			if a[0] == 0 {
 				return false
 			} else {
 				return true
@@ -501,6 +507,15 @@ func toMap(val interface{}) map[string]interface{} {
 		if nil == err {
 			return m
 		}
+	}
+
+	if b, _ := IsArray(val); b {
+		arr := ToArray(val)
+		m := make(map[string]interface{})
+		for i, item := range arr {
+			m[fmt.Sprintf("%v", i)] = item
+		}
+		return m
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package lygo_n_commons
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
@@ -21,13 +20,21 @@ type Message struct {
 	Response    *Response `json:"response"`
 }
 
-func (instance *Message) Marshal() []byte {
-	data, _ := json.Marshal(instance)
-	return data
+func (instance *Message) Bytes() []byte {
+	if nil != instance.Response && len(instance.Response.Data) > 0 {
+		// convert into map for better json serialization
+		m := lygo_conv.ForceMap(instance)
+		if nil != m {
+			r := m["response"].(map[string]interface{})
+			r["data"] = lygo_json.Parse(instance.Response.Data) //string(instance.Response.Data)
+			return lygo_json.Bytes(m)
+		}
+	}
+	return lygo_json.Bytes(instance)
 }
 
 func (instance *Message) String() string {
-	return string(instance.Marshal())
+	return string(instance.Bytes())
 }
 
 func (instance *Message) IsValid() bool {
@@ -46,6 +53,8 @@ func (instance *Message) SetResponse(val interface{}) {
 				Error: v.Error(),
 				Data:  nil,
 			}
+		} else if v, b := val.(*Response); b {
+			instance.Response = v
 		} else {
 			instance.Response = &Response{
 				Data: lygo_conv.ToArrayOfByte(val),
@@ -146,7 +155,11 @@ type NHostInfo struct {
 type Response struct {
 	Info  *NHostInfo `json:"info"`
 	Error string     `json:"error"`
-	Data  []byte     `json:"data"`
+	Data  []byte     `json:"data"` // []byte
+}
+
+func (instance *Response) String() string {
+	return lygo_json.Stringify(instance)
 }
 
 func (instance *Response) HasError() bool {
@@ -162,7 +175,7 @@ func (instance *Response) GetError() error {
 
 func (instance *Response) GetDataAsString() string {
 	if nil != instance && len(instance.Error) == 0 {
-		return string(instance.Data)
+		return lygo_conv.ToString(instance.Data)
 	}
 	return ""
 }

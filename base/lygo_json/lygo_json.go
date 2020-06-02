@@ -9,6 +9,32 @@ import (
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
 
+func StringToMap(text string) (map[string]interface{}, bool) {
+	return BytesToMap([]byte(text))
+}
+
+func StringToArray(text string) ([]interface{}, bool) {
+	return BytesToArray([]byte(text))
+}
+
+func BytesToMap(data []byte) (map[string]interface{}, bool) {
+	var js map[string]interface{}
+	err := json.Unmarshal(data, &js)
+	if nil != err {
+		return nil, false
+	}
+	return js, true
+}
+
+func BytesToArray(data []byte) ([]interface{}, bool) {
+	var js []interface{}
+	err := json.Unmarshal(data, &js)
+	if nil != err {
+		return nil, false
+	}
+	return js, true
+}
+
 func Bytes(entity interface{}) []byte {
 	b, err := json.Marshal(&entity)
 	if nil == err {
@@ -19,6 +45,25 @@ func Bytes(entity interface{}) []byte {
 
 func Stringify(entity interface{}) string {
 	return string(Bytes(entity))
+}
+
+func Parse(input interface{}) interface{} {
+	if v, b := input.(string); b {
+		if o, b := StringToMap(v); b {
+			return o // map
+		} else if a, b := StringToArray(v); b {
+			return a // array
+		}
+		return v // simple string
+	} else if v, b := input.([]byte); b {
+		if o, b := BytesToMap(v); b {
+			return o // map
+		} else if a, b := BytesToArray(v); b {
+			return a // array
+		}
+		return v // simple string
+	}
+	return input
 }
 
 func Read(input interface{}, entity interface{}) (err error) {

@@ -21,25 +21,7 @@ func TestSimpleCommunication(t *testing.T) {
 	n := lygo_n.NewNode(config())
 	n.Settings.Name = "SINGLE NODE"
 
-	n.RegisterCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
-		return "1.0.2"
-	})
-	n.RegisterCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
-		return true
-	})
-	n.RegisterCommand("get.array", func(message *lygo_n_commons.Command) interface{} {
-		return []interface{}{"1", "2", "3", 4, 5, 6, true, false}
-	})
-	n.RegisterCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
-		return errors.New("ERROR SIMULATION")
-	})
-	n.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
-		data, err := lygo_io.ReadBytesFromFile(message.GetParamAsString("file"))
-		if nil != err {
-			return err
-		}
-		return data
-	})
+	registerCommands(n)
 
 	// http handler
 	initializeHttp(n.Http())
@@ -49,7 +31,6 @@ func TestSimpleCommunication(t *testing.T) {
 		t.Error(errs)
 		t.FailNow()
 	}
-
 
 	client := lygo_n_net.NewNConn(configCli())
 	errs, _ = client.Start()
@@ -66,15 +47,15 @@ func TestSimpleCommunication(t *testing.T) {
 		t.Error(response.Error)
 		t.FailNow()
 	}
-	body := response.Data
-	fmt.Println("sys.version", "len:", len(body), "data:", string(body), "FROM:", response.Info.Name)
+	body := response.GetDataAsString()
+	fmt.Println("sys.version", "len:", len(body), "data:", body, "FROM:", response.Info.Name)
 
 	response = client.Send("get.boolean", nil)
 	if response.HasError() {
 		t.Error(response.Error)
 		t.FailNow()
 	}
-	body = response.Data
+	body = response.GetDataAsString()
 	fmt.Println("get.boolean", "len:", len(body), "data:", lygo_conv.ToBool(body), "FROM:", response.Info.Name)
 
 	response = client.Send("get.array", nil)
@@ -82,7 +63,7 @@ func TestSimpleCommunication(t *testing.T) {
 		t.Error(response.Error)
 		t.FailNow()
 	}
-	body = response.Data
+	body = response.GetDataAsString()
 	fmt.Println("get.array", len(body), string(body), "FROM:", response.Info.Name)
 
 	response = client.Send("get.error", nil)
@@ -98,7 +79,7 @@ func TestSimpleCommunication(t *testing.T) {
 		t.Error(response.Error)
 		t.FailNow()
 	}
-	body = response.Data
+	body = response.GetDataAsString()
 	fmt.Println("get.file", len(body), string(body), "FROM:", response.Info.Name)
 
 	// invoke internal command
@@ -113,7 +94,7 @@ func TestSimpleCommunication(t *testing.T) {
 		t.Error(response.Error)
 		t.FailNow()
 	}
-	body = response.Data
+	body = response.GetDataAsString()
 	appToken := string(body)
 	fmt.Println("n.sys_app_token", appToken, "FROM:", response.Info.Name)
 
@@ -136,22 +117,19 @@ func TestNodeNoNetworks(t *testing.T) {
 		t.FailNow()
 	}
 
-	// register a command handler
-	node.RegisterCommand("sys.version", func(message *lygo_n_commons.Command) interface{} {
-		return "v1.0.1"
-	})
+	registerCommands(node)
 
 	// wait internal server starts
 	time.Sleep(3 * time.Second)
 
 	// test command
-	response := node.Send("sys.version", nil)
+	response := node.Send("get.version", nil)
 	if response.HasError() {
 		t.Error(response.Error)
 		t.FailNow()
 	}
 	if nil != response {
-		body := response.Data
+		body := response.GetDataAsString()
 		fmt.Println("Response to command:", "sys.version", string(body), "FROM:", response.Info.Name)
 	}
 
@@ -217,6 +195,7 @@ func TestMultipleNodes(t *testing.T) {
 		t.FailNow()
 	}
 	// fmt.Println(node10001.GetStatus())
+	registerCommands(node10001)
 
 	// simple node
 	fmt.Println("* NODE", "node10002")
@@ -244,6 +223,7 @@ func TestMultipleNodes(t *testing.T) {
 		t.Error(errs)
 		t.FailNow()
 	}
+	registerCommands(node10002)
 	//fmt.Println(node10002.GetStatus())
 
 	fmt.Println("* NODE", "node10003")
@@ -255,13 +235,14 @@ func TestMultipleNodes(t *testing.T) {
 	node10003.Settings.Discovery.Publish.Enabled = true
 	node10003.Settings.Discovery.Publish.Address = "localhost:10003"
 	node10003.Settings.Workspace = "./_workspace/10003"
-	node10003.Settings.Server.Http.Hosts = nil
+	// node10003.Settings.Server.Http.Hosts = nil // http support
 	node10003.Settings.Server.Nio.Address = ":10003"
 	errs = node10003.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
+	registerCommands(node10003)
 
 	// wait node sync
 	time.Sleep(5 * time.Second)
@@ -280,7 +261,7 @@ func TestMultipleNodes(t *testing.T) {
 		t.Error("Expecting a response from node10001")
 		t.FailNow()
 	}
-	body := response.Data
+	body := response.GetDataAsString()
 	fmt.Println("n.sys_version", string(body), "from", response.Info.Name)
 
 	// detach handlers
@@ -335,6 +316,8 @@ func TestMultipleNodes(t *testing.T) {
 	fmt.Println("\tnode10001:", count1)
 	fmt.Println("\tnode10002", count2)
 	fmt.Println("\tnode10003", count3)
+
+	time.Sleep(10 * time.Minute)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -388,3 +371,24 @@ func initializeHttp(http *lygo_http_server.HttpServer) {
 	})
 }
 
+func registerCommands(n *lygo_n.N) {
+	n.RegisterCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
+		return "1.0.2"
+	})
+	n.RegisterCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
+		return true
+	})
+	n.RegisterCommand("get.array", func(message *lygo_n_commons.Command) interface{} {
+		return []interface{}{"1", "2", "3", 4, 5, 6, true, false}
+	})
+	n.RegisterCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
+		return errors.New("ERROR SIMULATION")
+	})
+	n.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
+		data, err := lygo_io.ReadBytesFromFile(message.GetParamAsString("file"))
+		if nil != err {
+			return err
+		}
+		return data
+	})
+}

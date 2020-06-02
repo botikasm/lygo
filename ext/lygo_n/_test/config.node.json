@@ -16,7 +16,7 @@
     "enabled": true,
     "http": {
       "enabled": true,
-      "websocket_endpoint": "/ws",
+      "websocket_endpoint": "/websocket",
       "hosts": [
         {
           "addr": ":80",

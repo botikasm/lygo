@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server/lygo_http_server_config"
@@ -211,11 +212,11 @@ func (instance *NHttp) handleWs(payload *lygo_http_server.HttpWebsocketEventPayl
 						// response := instance.execute(&m)
 						// m.SetResponse(response)
 						commandName := m.Payload.Name()
-						params := m.Payload.Params.(map[string]interface{})
+						params := lygo_conv.ForceMap(m.Payload.Params) //m.Payload.Params.(map[string]interface{})
 						response := instance.SendCommandHandler(commandName, params)
 						m.SetResponse(response)
 						if ws.IsAlive() {
-							ws.SendData(m.Marshal())
+							ws.SendData(m.Bytes())
 						}
 					} else {
 						// invalid message
