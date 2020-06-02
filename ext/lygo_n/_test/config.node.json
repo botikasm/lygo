@@ -10,20 +10,12 @@
     "publish": {
       "enabled": true,
       "address": "localhost:10001"
-    },
-    "network": {
-      "enabled": true
-    }
-  },
-  "client": {
-    "enabled": true,
-    "nio": {
-      "address": "localhost:10001"
     }
   },
   "server": {
     "enabled": true,
     "http": {
+      "enabled": true,
       "websocket_endpoint": "/ws",
       "hosts": [
         {

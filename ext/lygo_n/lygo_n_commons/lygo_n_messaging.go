@@ -2,26 +2,23 @@ package lygo_n_commons
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_json"
 	"strings"
 )
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 		m e s s a g e
+// 		Message
 // ---------------------------------------------------------------------------------------------------------------------
 
 type Message struct {
-	RequestUUID string           `json:"request_uuid"`
-	Lang        string           `json:"lang"`
-	UID         string           `json:"uid"` // user_id
-	Payload     *Command         `json:"payload"`
-	Response    *MessageResponse `json:"response"`
-}
-
-type MessageResponse struct {
-	Error string        `json:"error"`
-	Data  []interface{} `json:"data"`
+	RequestUUID string    `json:"request_uuid"`
+	Lang        string    `json:"lang"`
+	UID         string    `json:"uid"` // user_id
+	Payload     *Command  `json:"payload"`
+	Response    *Response `json:"response"`
 }
 
 func (instance *Message) Marshal() []byte {
@@ -45,20 +42,20 @@ func (instance *Message) IsValid() bool {
 func (instance *Message) SetResponse(val interface{}) {
 	if nil != instance {
 		if v, b := val.(error); b {
-			instance.Response = &MessageResponse{
+			instance.Response = &Response{
 				Error: v.Error(),
 				Data:  nil,
 			}
 		} else {
-			instance.Response = &MessageResponse{
-				Data: lygo_conv.ToArray(val),
+			instance.Response = &Response{
+				Data: lygo_conv.ToArrayOfByte(val),
 			}
 		}
 	}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 		c o m m a n d
+// 		Command
 // ---------------------------------------------------------------------------------------------------------------------
 
 type Command struct {
@@ -128,6 +125,66 @@ func (instance *Command) GetParamAsMapArray(name string) []map[string]interface{
 			}
 		}
 		return response
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 		NServerInfo
+// ---------------------------------------------------------------------------------------------------------------------
+
+type NHostInfo struct {
+	Name      string `json:"name"`
+	UUID      string `json:"uuid"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 		Response
+// ---------------------------------------------------------------------------------------------------------------------
+
+type Response struct {
+	Info  *NHostInfo `json:"info"`
+	Error string     `json:"error"`
+	Data  []byte     `json:"data"`
+}
+
+func (instance *Response) HasError() bool {
+	return nil != instance && len(instance.Error) > 0
+}
+
+func (instance *Response) GetError() error {
+	if nil != instance && len(instance.Error) > 0 {
+		return errors.New(instance.Error)
+	}
+	return nil
+}
+
+func (instance *Response) GetDataAsString() string {
+	if nil != instance && len(instance.Error) == 0 {
+		return string(instance.Data)
+	}
+	return ""
+}
+
+func (instance *Response) GetDataAsMap() map[string]interface{} {
+	if nil != instance && len(instance.Error) == 0 {
+		var response map[string]interface{}
+		err := lygo_json.Read(instance.Data, &response)
+		if nil == err {
+			return response
+		}
+	}
+	return nil
+}
+
+func (instance *Response) GetDataAsArrayOfMap() []map[string]interface{} {
+	if nil != instance && len(instance.Error) == 0 {
+		var response []map[string]interface{}
+		err := lygo_json.Read(instance.Data, &response)
+		if nil == err {
+			return response
+		}
 	}
 	return nil
 }

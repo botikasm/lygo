@@ -95,7 +95,7 @@ func (instance *BoltCollection) Get(key string) (interface{}, error) {
 			b := tx.Bucket([]byte(instance.name))
 			if nil != b {
 				buf := b.Get([]byte(key))
-				if nil!=buf{
+				if nil != buf {
 					err := json.Unmarshal(buf, &response)
 					return err
 				}
@@ -207,6 +207,22 @@ func (instance *BoltCollection) ForEach(callback ForEachCallback) error {
 		} else {
 			return nil
 		}
+	}
+	return ErrDatabaseIsNotConnected
+}
+
+func (instance *BoltCollection) Remove(key string) error {
+	if nil != instance && nil != instance.db {
+		err := instance.db.View(func(tx *bbolt.Tx) error {
+			b := tx.Bucket([]byte(instance.name))
+			if nil != b {
+				err := b.Delete([]byte(key))
+				return err
+			} else {
+				return ErrCollectionDoesNotExists
+			}
+		})
+		return err
 	}
 	return ErrDatabaseIsNotConnected
 }

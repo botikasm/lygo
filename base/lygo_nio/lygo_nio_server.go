@@ -247,7 +247,7 @@ func (instance *NioServer) handleConnection(conn net.Conn) {
 						message.Body = data
 					} else {
 						// encryption error
-						fmt.Println("Server error decrypting data:", err)
+						fmt.Println("Http error decrypting data:", err)
 					}
 				}
 			}
@@ -299,7 +299,7 @@ func sendResponse(body interface{}, rw *bufio.ReadWriter, sessionKey []byte, cli
 		if nil == err {
 			s = data
 		} else {
-			fmt.Println("Server error encrypting data", err)
+			fmt.Println("Http error encrypting data", err)
 		}
 	}
 	response.Body = s

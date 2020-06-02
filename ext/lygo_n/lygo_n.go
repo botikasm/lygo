@@ -3,14 +3,16 @@ package lygo_n
 import (
 	"bytes"
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_fmt"
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_rnd"
 	"github.com/botikasm/lygo/base/lygo_sys"
+	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_logs"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_conn"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"io"
 	"strings"
 	"time"
@@ -27,9 +29,10 @@ type N struct {
 	uuid        string
 	statusBuff  bytes.Buffer
 	initialized bool
-	client      *lygo_n_client.NClient
-	server      *lygo_n_server.NServer
+	server      *lygo_n_host.NHost // nio server
+	http        *NHttp             // http interface
 	discovery   *NDiscovery
+	events      *lygo_events.Emitter
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -47,8 +50,6 @@ func NewNode(settings *NSettings) *N {
 		instance.Settings.Discovery.Publish.Enabled = false
 		instance.Settings.Discovery.Publisher = new(NDiscoveryPublisherSettings)
 		instance.Settings.Discovery.Publisher.Enabled = false
-		instance.Settings.Discovery.Network = new(NDiscoveryNetworkSettings)
-		instance.Settings.Discovery.Network.Enabled = false
 	}
 
 	sysid, err := lygo_sys.ID()
@@ -56,6 +57,11 @@ func NewNode(settings *NSettings) *N {
 		sysid = lygo_rnd.Uuid()
 	}
 	instance.uuid = fmt.Sprintf("%v", sysid)
+
+	instance.events = lygo_events.NewEmitter()
+	if len(instance.Settings.Name) == 0 {
+		instance.Settings.Name = sysid
+	}
 
 	return instance
 }
@@ -71,6 +77,16 @@ func (instance *N) GetUUID() string {
 	return ""
 }
 
+func (instance *N) Name() string {
+	if nil != instance {
+		if len(instance.Settings.Name) > 0 {
+			return instance.Settings.Name
+		}
+		return instance.GetUUID()
+	}
+	return ""
+}
+
 func (instance *N) GetStatus() string {
 	if nil != instance {
 		var buff bytes.Buffer
@@ -80,14 +96,6 @@ func (instance *N) GetStatus() string {
 			buff.WriteString("\tSERVER\t")
 			buff.WriteString(instance.server.GetUUID() + "\n")
 			buff.WriteString(instance.indentLines(instance.server.GetStatus()))
-		}
-
-		if nil != instance.client && instance.client.IsOpen() {
-			buff.WriteString("------------------------\n")
-			buff.WriteString("\tCLIENT\t")
-			buff.WriteString(instance.client.GetUUID() + "\n")
-			buff.WriteString(instance.indentLines(instance.client.GetStatus()))
-			buff.WriteString(instance.indentLines(instance.statusBuff.String()))
 		}
 
 		return buff.String()
@@ -113,6 +121,13 @@ func (instance *N) WriteStatus(w io.Writer) (int64, error) {
 	return 0, nil
 }
 
+func (instance *N) Events() *lygo_events.Emitter {
+	if nil != instance {
+		return instance.events
+	}
+	return nil
+}
+
 func (instance *N) Start() []error {
 	if nil != instance {
 		return instance.open()
@@ -127,14 +142,26 @@ func (instance *N) Stop() []error {
 	return []error{lygo_n_commons.PanicSystemError}
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+//	e x p o s e d
+//----------------------------------------------------------------------------------------------------------------------
+
+func (instance *N) Http() *lygo_http_server.HttpServer {
+	if nil != instance {
+		return instance.getHttp().Http()
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 //		m e s s a g e    h a n d l e r s
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (instance *N) RegisterCommand(command string, handler lygo_n_server.CommandHandler) {
+func (instance *N) RegisterCommand(command string, handler lygo_n_host.CommandHandler) {
 	if nil != instance {
-		if nil != instance.server {
-			instance.server.RegisterCommand(command, handler)
+		server := instance.getServer()
+		if nil != server {
+			server.RegisterCommand(command, handler)
 		}
 	}
 }
@@ -143,14 +170,29 @@ func (instance *N) RegisterCommand(command string, handler lygo_n_server.Command
 //		m e s s a g e    s e n d e r
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (instance *N) Send(commandName string, params map[string]interface{}) ([]byte, error) {
+func (instance *N) Send(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
 	if nil != instance {
-		if instance.client.IsOpen() {
-			return instance.client.Send(commandName, params)
+		if instance.initialized && nil != instance.discovery {
+			// try registered node
+			conn := instance.discovery.AcquireNode()
+			if nil != conn {
+				defer instance.discovery.ReleaseNode(conn)
+
+				return conn.Send(commandName, params)
+			} else {
+				// try internal host if enabled
+				conn = instance.getSelfHostedConn()
+				if nil != conn {
+					return conn.Send(commandName, params)
+				}
+			}
 		}
-		return nil, nil
+		return nil
 	}
-	return nil, lygo_n_commons.PanicSystemError
+	return &lygo_n_commons.Response{
+		Error: lygo_n_commons.PanicSystemError.Error(),
+		Data:  nil,
+	}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -176,35 +218,60 @@ func (instance *N) open() []error {
 		}
 		lygo_logs.SetOutput(lygo_logs.OUTPUT_FILE)
 
-		// discovery
-		instance.discovery = NewNodeDiscovery(instance.uuid, instance.Settings.Discovery)
+		// [01] discovery: enable network discovery
+		instance.discovery = NewNodeDiscovery(instance.events, instance.uuid, instance.Settings.Discovery)
 		err := instance.discovery.Start()
 		if nil != err {
 			response = append(response, err)
 		}
 
-		// server
-		instance.server = lygo_n_server.NewNServer(instance.Settings.Server)
-		errs, warnings := instance.server.Start()
-		response = append(response, errs...)
-		instance.logWarns(warnings)
+		// [02] server: enable client connections
+		server := instance.getServer()
+		if nil != instance.server {
+			server.Info.Name = instance.Name()
+			server.SetEventManager(instance.events)
+			errs, warnings := server.Start()
+			response = append(response, errs...)
+			instance.logWarns(warnings)
+			// system message handler
+			instance.handleSystemMessages(server)
+		}
 
-		// client
-		instance.client = lygo_n_client.NewNClient(instance.Settings.Client)
-		errs, warnings = instance.client.Start()
-		response = append(response, errs...)
-		instance.logWarns(warnings)
-
-		// system message handler
-		instance.handleSystemMessages()
-
-		// check configuration
-		if len(warnings) == 0 {
-			warnings = instance.checkConfiguration()
+		//[03] http interface
+		instance.http = instance.getHttp()
+		if nil != instance.http {
+			instance.http.SetEventManager(instance.events)
+			instance.http.SendCommandHandler = instance.Send
+			errs, warnings := instance.http.Start()
+			response = append(response, errs...)
 			instance.logWarns(warnings)
 		}
 
 		return response
+	}
+	return nil
+}
+
+func (instance *N) getHttp() *NHttp {
+	if nil != instance {
+		if nil == instance.http {
+			if nil != instance.Settings.Server && instance.Settings.Server.Enabled && instance.Settings.Server.Http.Enabled {
+				instance.http = NewNHttp(instance.Settings.Server)
+			}
+		}
+		return instance.http
+	}
+	return nil
+}
+
+func (instance *N) getServer() *lygo_n_host.NHost {
+	if nil != instance {
+		if nil == instance.server {
+			if nil != instance.Settings.Server && instance.Settings.Server.Enabled {
+				instance.server = lygo_n_host.NewNHost(instance.Settings.Server)
+			}
+		}
+		return instance.server
 	}
 	return nil
 }
@@ -216,12 +283,10 @@ func (instance *N) close() []error {
 
 		// discovery
 		if nil != instance.discovery {
-			response = append(response, instance.discovery.Stop())
-		}
-
-		// client
-		if nil != instance.client {
-			response = append(response, instance.client.Stop()...)
+			err := instance.discovery.Stop()
+			if nil != err {
+				response = append(response, err)
+			}
 		}
 
 		// server
@@ -233,21 +298,6 @@ func (instance *N) close() []error {
 	return nil
 }
 
-func (instance *N) checkConfiguration() []string {
-	response := make([]string, 0)
-	clientHost := instance.client.Settings.Nio.Host()
-	clientPort := instance.client.Settings.Nio.Port()
-	if clientHost == "localhost" || clientHost == "127.0.0.1" {
-		serverPort := instance.server.Settings.Nio.Port()
-		if serverPort == clientPort {
-			// client is connecting to itself
-			response = append(response, "Client auto-connect to itself at address "+instance.client.Settings.Nio.Address+
-				"\n\tEnsure this is only for testing purpose.")
-		}
-	}
-	return response
-}
-
 func (instance *N) logWarns(warnings []string) {
 	if len(warnings) > 0 {
 		for _, w := range warnings {
@@ -255,6 +305,18 @@ func (instance *N) logWarns(warnings []string) {
 			lygo_logs.Warn("", w)
 		}
 	}
+}
+func (instance *N) getSelfHostedConn() *lygo_n_conn.NConn {
+	if nil != instance.server && instance.server.IsOpen() {
+		host := "localhost"
+		port := instance.Settings.Server.Nio.Port()
+		conn := lygo_n_conn.NewNConn(host, port)
+		errs, _ := conn.Start()
+		if len(errs) == 0 {
+			return conn
+		}
+	}
+	return nil
 }
 
 func (instance *N) indentLines(text string) string {
@@ -269,12 +331,13 @@ func (instance *N) indentLines(text string) string {
 	return buff.String()
 }
 
-func (instance *N) handleSystemMessages()  {
-	if nil!=instance.server && instance.server.IsOpen(){
+func (instance *N) handleSystemMessages(server *lygo_n_host.NHost) {
+	if nil != server && server.IsOpen() {
 
 		// discovery messages
-		if nil!=instance.discovery && instance.discovery.IsEnabled(){
-			instance.server.RegisterCommand(CMD_GET_NODE_LIST, instance.discovery.getNodeList)
+		if nil != instance.discovery && instance.discovery.IsEnabled() {
+			server.RegisterCommand(lygo_n_commons.CMD_GET_NODE_LIST, instance.discovery.getNodeList)
+			server.RegisterCommand(lygo_n_commons.CMD_REGISTER_NODE, instance.discovery.registerNode)
 		}
 
 	}

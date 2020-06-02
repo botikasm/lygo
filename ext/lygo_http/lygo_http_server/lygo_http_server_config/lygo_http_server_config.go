@@ -6,10 +6,12 @@ import (
 )
 
 //----------------------------------------------------------------------------------------------------------------------
-//	t y p e s*lygo_http_server_config.HttpServerConfig
+//	t y p e s
 //----------------------------------------------------------------------------------------------------------------------
 
 type HttpServerConfig struct {
+	// Enabled
+	Enabled bool `json:"enabled"`
 
 	// Websocket
 	WebsocketEndpoint string `json:"websocket_endpoint"`
@@ -23,7 +25,7 @@ type HttpServerConfig struct {
 	// Enables use of the SO_REUSEPORT socket option. This will spawn multiple Go processes listening on the same port. learn more about socket sharding
 	// https://www.nginx.com/blog/socket-sharding-nginx-release-1-9-1/
 	Prefork bool `json:"prefork"` // default: false
-	// Enables the Server HTTP header with the given value.
+	// Enables the Http HTTP header with the given value.
 	ServerHeader string `json:"server_header"` // default: ""
 	// When enabled, the router treats /foo and /foo/ as different. Otherwise, the router treats /foo and /foo/ as the same.
 	StrictRouting bool `json:"strict_routing"` // default: false

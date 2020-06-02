@@ -156,7 +156,9 @@ func SetOutput(value int) {
 }
 
 func Close() {
-	close(_channel)
+	if nil != _channel {
+		close(_channel)
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -170,7 +172,9 @@ func Panic(args ...interface{}) {
 	logParams.Level = LEVEL_PANIC
 	logParams.Args = args
 
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 func Error(args ...interface{}) {
@@ -179,8 +183,9 @@ func Error(args ...interface{}) {
 	logParams := new(LogParams)
 	logParams.Level = LEVEL_ERROR
 	logParams.Args = args
-
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 func Warn(args ...interface{}) {
@@ -189,8 +194,9 @@ func Warn(args ...interface{}) {
 	logParams := new(LogParams)
 	logParams.Level = LEVEL_WARN
 	logParams.Args = args
-
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 func Info(args ...interface{}) {
@@ -199,8 +205,9 @@ func Info(args ...interface{}) {
 	logParams := new(LogParams)
 	logParams.Level = LEVEL_INFO
 	logParams.Args = args
-
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 func Debug(args ...interface{}) {
@@ -209,8 +216,9 @@ func Debug(args ...interface{}) {
 	logParams := new(LogParams)
 	logParams.Level = LEVEL_DEBUG
 	logParams.Args = args
-
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 func Trace(args ...interface{}) {
@@ -219,8 +227,9 @@ func Trace(args ...interface{}) {
 	logParams := new(LogParams)
 	logParams.Level = LEVEL_TRACE
 	logParams.Args = args
-
-	_channel <- logParams
+	if nil != _channel {
+		_channel <- logParams
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

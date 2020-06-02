@@ -31,6 +31,15 @@ func UuidTimestamp() string {
 	return time.Now().Format("20060102T150405") + "-" + Uuid()
 }
 
+func Between(min, max int64) int64 {
+	rand.Seed(time.Now().Unix())
+	return rand.Int63n(max-min) + min
+}
+
+func BetweenDuration(max, min int64) time.Duration {
+	return time.Duration(Between(max, min))
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------

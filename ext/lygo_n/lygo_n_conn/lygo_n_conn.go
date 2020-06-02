@@ -1,4 +1,4 @@
-package lygo_n_client
+package lygo_n_conn
 
 import (
 	"bytes"
@@ -6,10 +6,11 @@ import (
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_events"
+	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_nio"
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"io"
 	"strings"
 )
@@ -18,7 +19,7 @@ import (
 //		t y p e s
 // ---------------------------------------------------------------------------------------------------------------------
 
-type NClient struct {
+type NConn struct {
 	Settings *NClientSettings
 
 	//-- private --//
@@ -33,8 +34,8 @@ type NClient struct {
 //	c o n s t r u c t o r
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewNClient(args ...interface{}) *NClient {
-	instance := new(NClient)
+func NewNConn(args ...interface{}) *NConn {
+	instance := new(NConn)
 
 	if len(args) > 0 {
 		if len(args) == 1 {
@@ -66,28 +67,44 @@ func NewNClient(args ...interface{}) *NClient {
 //----------------------------------------------------------------------------------------------------------------------
 //	p u b l i c
 //----------------------------------------------------------------------------------------------------------------------
-func (instance *NClient) GetUUID() string {
+func (instance *NConn) GetUUID() string {
 	if nil != instance {
 		return instance.nio.GetUUID()
 	}
 	return ""
 }
 
-func (instance *NClient) GetStatus() string {
+func (instance *NConn) GetAddress() string {
+	if nil != instance {
+		return instance.Settings.Nio.Address
+	}
+	return ""
+}
+
+func (instance *NConn) GetStatus() string {
 	if nil != instance {
 		return instance.statusBuffer.String()
 	}
 	return ""
 }
 
-func (instance *NClient) WriteStatus(w io.Writer) (int64, error) {
+func (instance *NConn) WriteStatus(w io.Writer) (int64, error) {
 	if nil != instance {
 		return instance.statusBuffer.WriteTo(w)
 	}
 	return 0, nil
 }
 
-func (instance *NClient) IsOpen() bool {
+func (instance *NConn) SetEventManager(events *lygo_events.Emitter) bool {
+	if nil != instance {
+		if nil != events {
+			instance.events = events
+		}
+	}
+	return false
+}
+
+func (instance *NConn) IsOpen() bool {
 	if nil != instance {
 		if nil != instance.nio {
 			return instance.nio.IsOpen()
@@ -96,7 +113,7 @@ func (instance *NClient) IsOpen() bool {
 	return false
 }
 
-func (instance *NClient) Start() ([]error, []string) {
+func (instance *NConn) Start() ([]error, []string) {
 	if nil != instance {
 		if !instance.initialized {
 			instance.initialized = true
@@ -106,7 +123,7 @@ func (instance *NClient) Start() ([]error, []string) {
 	return []error{lygo_n_commons.PanicSystemError}, []string{}
 }
 
-func (instance *NClient) Stop() []error {
+func (instance *NConn) Stop() []error {
 	if nil != instance {
 		if instance.initialized {
 			instance.initialized = false
@@ -116,7 +133,7 @@ func (instance *NClient) Stop() []error {
 	return []error{lygo_n_commons.PanicSystemError}
 }
 
-func (instance *NClient) SendData(data map[string]interface{}) ([]byte, error) {
+func (instance *NConn) SendData(data map[string]interface{}) *lygo_n_commons.Response {
 	if nil != instance {
 		if instance.IsOpen() {
 			if nil == data["app_token"] {
@@ -124,28 +141,28 @@ func (instance *NClient) SendData(data map[string]interface{}) ([]byte, error) {
 			}
 			response, err := instance.nio.Send(data)
 			if nil != err {
-				return nil, err
+				return instance.unmarshalMessage(nil, err)
 			}
-			return lygo_conv.ToArrayOfByte(response.Body), nil
+			return instance.unmarshalMessage(response, nil)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
-func (instance *NClient) SendCommand(command *lygo_n_commons.Command) ([]byte, error) {
+func (instance *NConn) SendCommand(command *lygo_n_commons.Command) *lygo_n_commons.Response {
 	if nil != instance {
 		if instance.IsOpen() {
 			response, err := instance.nio.Send(command)
 			if nil != err {
-				return nil, err
+				return instance.unmarshalMessage(nil, err)
 			}
-			return lygo_conv.ToArrayOfByte(response.Body), nil
+			return instance.unmarshalMessage(response, nil)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
-func (instance *NClient) Send(commandName string, params map[string]interface{}) ([]byte, error) {
+func (instance *NConn) Send(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
 	if nil != instance {
 		tokens := strings.Split(commandName, ".")
 		command := &lygo_n_commons.Command{
@@ -156,14 +173,14 @@ func (instance *NClient) Send(commandName string, params map[string]interface{})
 		}
 		return instance.SendCommand(command)
 	}
-	return nil, nil
+	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
 
-func (instance *NClient) init() ([]error, []string) {
+func (instance *NConn) init() ([]error, []string) {
 
 	responseErrs := make([]error, 0)
 	responseWarns := make([]string, 0)
@@ -186,7 +203,7 @@ func (instance *NClient) init() ([]error, []string) {
 	return responseErrs, responseWarns
 }
 
-func (instance *NClient) close() []error {
+func (instance *NConn) close() []error {
 	response := make([]error, 0)
 
 	// nio
@@ -198,7 +215,7 @@ func (instance *NClient) close() []error {
 	return response
 }
 
-func (instance *NClient) getAppToken() string {
+func (instance *NConn) getAppToken() string {
 	if len(instance.appToken) == 0 {
 		if instance.IsOpen() {
 			command := &lygo_n_commons.Command{
@@ -207,10 +224,10 @@ func (instance *NClient) getAppToken() string {
 				Function:  "",
 				Params:    nil,
 			}
-			command.SetName(lygo_n_server.CmdAppToken)
-			response, err := instance.SendCommand(command)
-			if nil == err {
-				s := lygo_conv.ToString(response)
+			command.SetName(lygo_n_host.CmdAppToken)
+			response := instance.SendCommand(command)
+			if len(response.Error) == 0 {
+				s := lygo_conv.ToString(response.Data)
 				if len(s) > 0 {
 					if !lygo_regex.IsValidJsonObject(s) {
 						instance.appToken = s
@@ -220,4 +237,20 @@ func (instance *NClient) getAppToken() string {
 		}
 	}
 	return instance.appToken
+}
+
+func (instance *NConn) unmarshalMessage(nm *lygo_nio.NioMessage, err error) *lygo_n_commons.Response {
+	if nil != err {
+		return &lygo_n_commons.Response{
+			Error: err.Error(),
+			Data:  nil,
+		}
+	}
+	if nil != nm {
+		data := lygo_conv.ToArrayOfByte(nm.Body)
+		var m lygo_n_commons.Message
+		lygo_json.Read(data, &m)
+		return m.Response
+	}
+	return nil
 }

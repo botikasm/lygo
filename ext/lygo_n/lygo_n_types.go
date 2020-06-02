@@ -4,29 +4,21 @@ import (
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_json"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"strings"
 )
-
-//----------------------------------------------------------------------------------------------------------------------
-//	c o n s t a n t s
-//----------------------------------------------------------------------------------------------------------------------
-
-const CMD_GET_NODE_LIST = "n.sys_get_node_list"
 
 //----------------------------------------------------------------------------------------------------------------------
 //	NSettings
 //----------------------------------------------------------------------------------------------------------------------
 
 type NSettings struct {
+	Name      string `json:"name"`
 	Workspace string `json:"workspace"`
 	LogLevel  string `json:"log_level"` // warn, info, error, debug
 
-	Discovery *NDiscoverySettings `json:"discovery"`
-
-	Client *lygo_n_client.NClientSettings `json:"client"`
-	Server *lygo_n_server.NServerSettings `json:"server"`
+	Discovery *NDiscoverySettings        `json:"discovery"`
+	Server    *lygo_n_host.NHostSettings `json:"server"`
 }
 
 func (instance *NSettings) Parse(text string) error {
@@ -72,7 +64,6 @@ type NDiscoverySettings struct {
 	NetworkId  string                       `json:"network_id"`
 	Publisher  *NDiscoveryPublisherSettings `json:"publisher"`
 	Publish    *NDiscoveryPublishSettings   `json:"publish"`
-	Network    *NDiscoveryNetworkSettings   `json:"network"`
 }
 
 func (instance *NDiscoverySettings) Parse(text string) error {
@@ -98,6 +89,27 @@ type NDiscoveryPublisherSettings struct {
 type NDiscoveryPublishSettings struct {
 	Enabled bool     `json:"enabled"`
 	Address NAddress `json:"address"`
+}
+
+func (instance *NDiscoveryPublishSettings) IsAddress(address string) bool {
+	if nil != instance {
+		return len(address) > 0 && address == instance.Address.String()
+	}
+	return false
+}
+
+func (instance *NDiscoveryPublishSettings) HasAddress() bool {
+	if nil != instance {
+		return len(instance.Address) > 0
+	}
+	return false
+}
+
+func (instance *NDiscoveryPublishSettings) IsEnabled() bool {
+	if nil != instance {
+		return len(instance.Address) > 0 && instance.Enabled
+	}
+	return false
 }
 
 //----------------------------------------------------------------------------------------------------------------------

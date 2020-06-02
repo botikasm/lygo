@@ -1,12 +1,10 @@
-package lygo_n_server
+package lygo_n_host
 
 import (
-	"encoding/json"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_nio"
-	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
 	"strings"
 )
@@ -19,7 +17,7 @@ type CommandHandler func(message *lygo_n_commons.Command) interface{}
 type MessageFallbackHandler func(commandName string, message *lygo_n_commons.Message) (interface{}, bool)
 
 type MessagingController struct {
-	app             *NServer
+	app             *NHost
 	events          *lygo_events.Emitter
 	fallback        MessageFallbackHandler // fallback for custom/unregisterd commands (namespace.function)
 	commandHandlers map[string]CommandHandler
@@ -29,7 +27,7 @@ type MessagingController struct {
 // 		c o n s t r u c t o r
 // ---------------------------------------------------------------------------------------------------------------------
 
-func NewMessagingController(app *NServer, callback MessageFallbackHandler) *MessagingController {
+func NewMessagingController(app *NHost, callback MessageFallbackHandler) *MessagingController {
 	instance := new(MessagingController)
 	instance.app = app
 	instance.events = app.events
@@ -62,49 +60,30 @@ func (instance *MessagingController) RegisterNS(namespace, function string, hand
 // 		p r i v a t e
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (instance *MessagingController) handleWsMessage(payload interface{}) {
-	if nil != payload {
-		if v, b := payload.(*lygo_http_server.HttpWebsocketEventPayload); b {
-			instance.handleWs(v)
-		}
-	}
-}
-
 func (instance *MessagingController) handleNioMessage(nioMessage *lygo_nio.NioMessage) interface{} {
+	message := new(lygo_n_commons.Message)
 	// convert message body to string format
 	body := lygo_conv.ToString(nioMessage.Body)
 	if strings.Index(body, "{") > -1 {
-		message := new(lygo_n_commons.Message)
-		lygo_json.Read(body, &message.Payload)
-		return instance.execute(message)
-	}
-	return lygo_n_commons.UnsupportedMessageTypeError // custom response
-}
-
-func (instance *MessagingController) handleWs(payload *lygo_http_server.HttpWebsocketEventPayload) {
-	if nil != instance && nil != instance.events {
-		ws := payload.Websocket
-		if nil != ws && ws.IsAlive() && len(payload.Message.Data) > 0 {
-			var m lygo_n_commons.Message
-			err := json.Unmarshal(payload.Message.Data, &m)
-			if nil == err && m.IsValid() {
-				if m.IsValid() {
-					response := instance.execute(&m)
-					m.SetResponse(response)
-					if ws.IsAlive() {
-						ws.SendData(m.Marshal())
-					}
-				} else {
-					// invalid message
-				}
-			} else {
-				instance.events.Emit(lygo_n_commons.EventError, lygo_n_commons.ContextWebsocket, payload, err)
+		err := lygo_json.Read(body, &message.Payload)
+		if nil!=err{
+			message.Response = &lygo_n_commons.Response{
+				Info:  instance.app.Info,
+				Error: err.Error(),
+				Data:  nil,
 			}
+		}else {
+			instance.execute(message)
 		}
+		// return instance.execute(message)
+	} else {
+		message.SetResponse(lygo_n_commons.UnsupportedMessageTypeError)
 	}
+	//return lygo_n_commons.UnsupportedMessageTypeError // custom response
+	return message
 }
 
-func (instance *MessagingController) execute(message *lygo_n_commons.Message) interface{} {
+func (instance *MessagingController) execute(message *lygo_n_commons.Message) {
 	if nil != instance {
 		commandName := message.Payload.Namespace + "." + message.Payload.Function
 
@@ -112,22 +91,37 @@ func (instance *MessagingController) execute(message *lygo_n_commons.Message) in
 		if commandName != CmdAppToken {
 			// check token
 			if lygo_n_commons.AppToken != message.Payload.AppToken {
-				return lygo_n_commons.InvalidTokenError
+				message.SetResponse(lygo_n_commons.InvalidTokenError)
+				// return lygo_n_commons.InvalidTokenError
+				goto done
 			}
 		}
 
 		handler := instance.getHandler(commandName)
 		if nil != handler {
-			return handler(message.Payload)
+			value := handler(message.Payload)
+			message.SetResponse(value)
+			// return value
+			goto done
 		} else if nil != instance.fallback {
 			value, handled := instance.fallback(commandName, message)
 			if handled {
-				return value
+				message.SetResponse(value)
+				// return value
+				goto done
 			}
 		}
-		return lygo_n_commons.CommandNotFoundError
+		message.SetResponse(lygo_n_commons.CommandNotFoundError)
+		// return lygo_n_commons.CommandNotFoundError
+		goto done
 	}
-	return lygo_n_commons.PanicSystemError
+	message.SetResponse(lygo_n_commons.PanicSystemError)
+	// return lygo_n_commons.PanicSystemError
+
+done:
+	if nil != message.Response {
+		message.Response.Info = instance.app.Info
+	}
 }
 
 func (instance *MessagingController) getHandler(command string) CommandHandler {

@@ -216,15 +216,28 @@ func ToFloat64Def(val interface{}, defVal float64) float64 {
 }
 
 func ToBool(val interface{}) bool {
+	if v, b := val.(bool); b {
+		return v
+	}
 	if b, s := IsString(val); b {
 		v, err := strconv.ParseBool(s)
 		if nil == err {
 			return v
 		}
 	}
-	v, vv := val.(bool)
-	if vv {
-		return v
+	if a, b := val.([]byte); b {
+		if len(a)>1{
+			v, err := strconv.ParseBool(string(a))
+			if nil == err {
+				return v
+			}
+		} else {
+			if a[0]==0{
+				return false
+			} else {
+				return true
+			}
+		}
 	}
 	return false
 }

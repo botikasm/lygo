@@ -3,12 +3,15 @@ package _test_test
 import (
 	"errors"
 	"fmt"
+	"github.com/botikasm/lygo/base/lygo_conv"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_io"
-	"github.com/botikasm/lygo/ext/lygo_logs"
+	"github.com/botikasm/lygo/base/lygo_rnd"
+	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_server"
 	"github.com/botikasm/lygo/ext/lygo_n"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_client"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_conn"
 	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_commons"
-	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_server"
+	"github.com/botikasm/lygo/ext/lygo_n/lygo_n_host"
 	"github.com/gofiber/fiber"
 	"testing"
 	"time"
@@ -16,19 +19,22 @@ import (
 
 func TestSimpleCommunication(t *testing.T) {
 
-	server := lygo_n_server.NewNServer(configSrv())
+	n := lygo_n.NewNode(config())
+	n.Settings.Name = "SINGLE NODE"
 
-	server.OnMessage = onMessage
-	server.RegisterCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
+	n.RegisterCommand("get.version", func(message *lygo_n_commons.Command) interface{} {
 		return "1.0.2"
 	})
-	server.RegisterCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
+	n.RegisterCommand("get.boolean", func(message *lygo_n_commons.Command) interface{} {
 		return true
 	})
-	server.RegisterCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
+	n.RegisterCommand("get.array", func(message *lygo_n_commons.Command) interface{} {
+		return []interface{}{"1", "2", "3", 4, 5, 6, true, false}
+	})
+	n.RegisterCommand("get.error", func(message *lygo_n_commons.Command) interface{} {
 		return errors.New("ERROR SIMULATION")
 	})
-	server.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
+	n.RegisterCommand("get.file", func(message *lygo_n_commons.Command) interface{} {
 		data, err := lygo_io.ReadBytesFromFile(message.GetParamAsString("file"))
 		if nil != err {
 			return err
@@ -36,15 +42,17 @@ func TestSimpleCommunication(t *testing.T) {
 		return data
 	})
 
-	initialize(server)
+	// http handler
+	initializeHttp(n.Http())
 
-	errs, _ := server.Start()
+	errs := n.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
 
-	client := lygo_n_client.NewNClient(configCli())
+
+	client := lygo_n_conn.NewNConn(configCli())
 	errs, _ = client.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
@@ -54,33 +62,45 @@ func TestSimpleCommunication(t *testing.T) {
 		"namespace": "get",
 		"function":  "version",
 	}
-	response, err := client.SendData(request)
-	if nil != err {
-		t.Error(err)
+	response := client.SendData(request)
+	if response.HasError() {
+		t.Error(response.Error)
 		t.FailNow()
 	}
-	fmt.Println("sys.version", len(response), string(response))
+	body := response.Data
+	fmt.Println("sys.version", "len:", len(body), "data:", string(body), "FROM:", response.Info.Name)
 
-	response, err = client.Send("get.boolean", nil)
-	if nil != err {
-		t.Error(err)
+	response = client.Send("get.boolean", nil)
+	if response.HasError() {
+		t.Error(response.Error)
 		t.FailNow()
 	}
-	fmt.Println("get.boolean", len(response), string(response))
+	body = response.Data
+	fmt.Println("get.boolean", "len:", len(body), "data:", lygo_conv.ToBool(body), "FROM:", response.Info.Name)
 
-	response, err = client.Send("get.error", nil)
-	if nil != err {
-		t.Error(err)
+	response = client.Send("get.array", nil)
+	if response.HasError() {
+		t.Error(response.Error)
 		t.FailNow()
 	}
-	fmt.Println("get.error", len(response), string(response))
+	body = response.Data
+	fmt.Println("get.array", len(body), string(body), "FROM:", response.Info.Name)
 
-	response, err = client.Send("get.file", map[string]interface{}{"file": "./client.config.json"})
-	if nil != err {
-		t.Error(err)
+	response = client.Send("get.error", nil)
+	if response.HasError() {
+		fmt.Println("get.error", len(body), response.Error, "FROM:", response.Info.Name)
+	} else {
+		t.Error("Expecting an error here!!!")
 		t.FailNow()
 	}
-	fmt.Println("get.file", len(response), string(response))
+
+	response = client.Send("get.file", map[string]interface{}{"file": "./config.client.json"})
+	if response.HasError() {
+		t.Error(response.Error)
+		t.FailNow()
+	}
+	body = response.Data
+	fmt.Println("get.file", len(body), string(body), "FROM:", response.Info.Name)
 
 	// invoke internal command
 	command := &lygo_n_commons.Command{
@@ -89,23 +109,26 @@ func TestSimpleCommunication(t *testing.T) {
 		Function:  "sys_app_token",
 		Params:    nil,
 	}
-	response, err = client.SendCommand(command)
-	if nil != err {
-		t.Error(err)
+	response = client.SendCommand(command)
+	if response.HasError() {
+		t.Error(response.Error)
 		t.FailNow()
 	}
-	appToken := string(response)
-	fmt.Println("n.sys_app_token", appToken)
+	body = response.Data
+	appToken := string(body)
+	fmt.Println("n.sys_app_token", appToken, "FROM:", response.Info.Name)
 
 	// app.Join()
 	fmt.Println("EXITING...")
 }
 
-func TestNode(t *testing.T) {
+func TestNodeNoNetworks(t *testing.T) {
 	node := lygo_n.NewNode(config())
 	if nil == node {
 		t.FailNow()
 	}
+	node.Settings.Server.Http.Enabled = false // no http support
+	node.Settings.Name = "SELF-HOSTED"
 
 	// open node
 	errs := node.Start()
@@ -119,21 +142,27 @@ func TestNode(t *testing.T) {
 		return "v1.0.1"
 	})
 
+	// wait internal server starts
+	time.Sleep(3 * time.Second)
+
 	// test command
-	response, err := node.Send("sys.version", nil)
-	if nil != err {
-		t.Error(err)
+	response := node.Send("sys.version", nil)
+	if response.HasError() {
+		t.Error(response.Error)
 		t.FailNow()
 	}
-	fmt.Println("Response to command:", "sys.version", string(response))
+	if nil != response {
+		body := response.Data
+		fmt.Println("Response to command:", "sys.version", string(body), "FROM:", response.Info.Name)
+	}
 
 	errs = node.Stop()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
-	time.Sleep(5 * time.Second)
-	lygo_logs.Close()
+
+	// time.Sleep(1 * time.Second)
 }
 
 func TestMultipleNodes(t *testing.T) {
@@ -141,6 +170,7 @@ func TestMultipleNodes(t *testing.T) {
 	// publisher node
 	fmt.Println("* PUBLISHER", "node10010")
 	node10010 := lygo_n.NewNode(config())
+	node10010.Settings.Name = "node10010"
 	node10010.Settings.Discovery.Publisher.Enabled = true
 	node10010.Settings.Discovery.NetworkId = ""
 	node10010.Settings.Discovery.Publish.Enabled = false
@@ -148,55 +178,164 @@ func TestMultipleNodes(t *testing.T) {
 	node10010.Settings.Workspace = "./_workspace/10010"
 	node10010.Settings.Server.Http.Hosts = nil // disable HTTP
 	node10010.Settings.Server.Nio.Address = ":10010"
-	node10010.Settings.Client.Enabled = false // disable client
+	node10010.Events().On(lygo_n_commons.EventQuitDiscovery, func(event *lygo_events.Event) {
+		fmt.Println("node10010", lygo_n_commons.EventQuitDiscovery, event.ArgumentAsString(0))
+	})
 	errs := node10010.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
-	fmt.Println(node10010.GetStatus())
+
+	// fmt.Println(node10010.GetStatus())
+
+	NETWORK_ID := "net_01"
 
 	// simple node
 	fmt.Println("* NODE", "node10001")
 	node10001 := lygo_n.NewNode(config())
+	node10001.Settings.Name = "node10001"
 	node10001.Settings.Discovery.Publisher.Enabled = false
-	node10001.Settings.Discovery.NetworkId = "net1"
+	node10001.Settings.Discovery.NetworkId = NETWORK_ID
 	node10001.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
 	node10001.Settings.Discovery.Publish.Enabled = true
 	node10001.Settings.Discovery.Publish.Address = "localhost:10001"
-	node10001.Settings.Discovery.Network.Enabled = true
 	node10001.Settings.Workspace = "./_workspace/10001"
 	node10001.Settings.Server.Http.Hosts = nil
 	node10001.Settings.Server.Nio.Address = ":10001"
-	node10001.Settings.Client.Nio.Address = "localhost:10010" // USES PUBLISHER AS SERVER
+	node10001.Events().On(lygo_n_commons.EventNewPublisher, func(event *lygo_events.Event) {
+		fmt.Println("node10001", lygo_n_commons.EventNewPublisher, event.ArgumentAsString(0), event.ArgumentAsString(1), event.ArgumentAsString(2))
+	})
+	node10001.Events().On(lygo_n_commons.EventRemovedPublisher, func(event *lygo_events.Event) {
+		fmt.Println("node10001", lygo_n_commons.EventRemovedPublisher, event.ArgumentAsString(0))
+	})
+	node10001.Events().On(lygo_n_commons.EventQuitDiscovery, func(event *lygo_events.Event) {
+		fmt.Println("node10001", lygo_n_commons.EventQuitDiscovery, event.ArgumentAsString(0))
+	})
 	errs = node10001.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
-	fmt.Println(node10001.GetStatus())
+	// fmt.Println(node10001.GetStatus())
 
 	// simple node
 	fmt.Println("* NODE", "node10002")
 	node10002 := lygo_n.NewNode(config())
+	node10002.Settings.Name = "node10002"
 	node10002.Settings.Discovery.Publisher.Enabled = false
-	node10002.Settings.Discovery.NetworkId = "net1"
+	node10002.Settings.Discovery.NetworkId = NETWORK_ID
 	node10002.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
 	node10002.Settings.Discovery.Publish.Enabled = true
 	node10002.Settings.Discovery.Publish.Address = "localhost:10002"
-	node10002.Settings.Discovery.Network.Enabled = true
 	node10002.Settings.Workspace = "./_workspace/10002"
 	node10002.Settings.Server.Http.Hosts = nil
 	node10002.Settings.Server.Nio.Address = ":10002"
-	node10002.Settings.Client.Nio.Address = "localhost:10010" // USES PUBLISHER AS SERVER
+	node10002.Events().On(lygo_n_commons.EventNewPublisher, func(event *lygo_events.Event) {
+		fmt.Println("node10002", lygo_n_commons.EventNewPublisher, event.ArgumentAsString(0), event.ArgumentAsString(1), event.ArgumentAsString(2))
+	})
+	node10002.Events().On(lygo_n_commons.EventRemovedPublisher, func(event *lygo_events.Event) {
+		fmt.Println("node10002", lygo_n_commons.EventRemovedPublisher, event.ArgumentAsString(0))
+	})
+	node10002.Events().On(lygo_n_commons.EventQuitDiscovery, func(event *lygo_events.Event) {
+		fmt.Println("node10002", lygo_n_commons.EventQuitDiscovery, event.ArgumentAsString(0))
+	})
 	errs = node10002.Start()
 	if len(errs) > 0 {
 		t.Error(errs)
 		t.FailNow()
 	}
-	fmt.Println(node10002.GetStatus())
+	//fmt.Println(node10002.GetStatus())
 
+	fmt.Println("* NODE", "node10003")
+	node10003 := lygo_n.NewNode(config())
+	node10003.Settings.Name = "node10003"
+	node10003.Settings.Discovery.Publisher.Enabled = false
+	node10003.Settings.Discovery.NetworkId = NETWORK_ID
+	node10003.Settings.Discovery.Publishers = []lygo_n.NAddress{"localhost:10010"}
+	node10003.Settings.Discovery.Publish.Enabled = true
+	node10003.Settings.Discovery.Publish.Address = "localhost:10003"
+	node10003.Settings.Workspace = "./_workspace/10003"
+	node10003.Settings.Server.Http.Hosts = nil
+	node10003.Settings.Server.Nio.Address = ":10003"
+	errs = node10003.Start()
+	if len(errs) > 0 {
+		t.Error(errs)
+		t.FailNow()
+	}
+
+	// wait node sync
 	time.Sleep(5 * time.Second)
+
+	// stop publisher
+	// fmt.Println("STOPPING PUBLISHER")
+	// node10010.Stop()
+
+	// node1 send a command and node 2 should respond
+	response := node10001.Send("n.sys_version", nil)
+	if response.HasError() {
+		t.Error(response.Error)
+		t.FailNow()
+	}
+	if nil == response {
+		t.Error("Expecting a response from node10001")
+		t.FailNow()
+	}
+	body := response.Data
+	fmt.Println("n.sys_version", string(body), "from", response.Info.Name)
+
+	// detach handlers
+	fmt.Println("DETACH EVENT HANDLERS...")
+	node10001.Events().Off(lygo_n_commons.EventNewPublisher)
+	node10001.Events().Off(lygo_n_commons.EventQuitDiscovery)
+	node10001.Events().Off(lygo_n_commons.EventRemovedPublisher)
+	node10002.Events().Off(lygo_n_commons.EventNewPublisher)
+	node10002.Events().Off(lygo_n_commons.EventQuitDiscovery)
+	node10002.Events().Off(lygo_n_commons.EventRemovedPublisher)
+
+	fmt.Println("START LOOP ASYNC COMMAND CALL....")
+	count1 := 0
+	count2 := 0
+	count3 := 0
+	go func() {
+		for {
+			time.Sleep(lygo_rnd.BetweenDuration(50, 500) * time.Millisecond)
+			go func() {
+				response := node10001.Send("n.sys_version", nil)
+				//fmt.Println(response.Info.Name, response.GetDataAsString())
+				if response.Info.Name == "node10001" {
+					count1++
+				} else if response.Info.Name == "node10002" {
+					count2++
+				} else {
+					count3++
+				}
+			}()
+		}
+	}()
+
+	go func() {
+		for {
+			time.Sleep(lygo_rnd.BetweenDuration(100, 300) * time.Millisecond)
+			go func() {
+				response := node10001.Send("n.sys_version", nil)
+				// fmt.Println(response.Info.Name, response.GetDataAsString())
+				if response.Info.Name == "node10001" {
+					count1++
+				} else if response.Info.Name == "node10002" {
+					count2++
+				} else {
+					count3++
+				}
+			}()
+		}
+	}()
+
+	fmt.Println("WAITING 10 SECONDS...")
+	time.Sleep(10 * time.Second)
+	fmt.Println("\tnode10001:", count1)
+	fmt.Println("\tnode10002", count2)
+	fmt.Println("\tnode10003", count3)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -211,30 +350,30 @@ func config() *lygo_n.NSettings {
 	return config
 }
 
-func configSrv() *lygo_n_server.NServerSettings {
+func configSrv() *lygo_n_host.NHostSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.server.json")
-	config := new(lygo_n_server.NServerSettings)
+	config := new(lygo_n_host.NHostSettings)
 	config.Parse(text_cfg)
 
 	return config
 }
 
-func configCli() *lygo_n_client.NClientSettings {
+func configCli() *lygo_n_conn.NClientSettings {
 	text_cfg, _ := lygo_io.ReadTextFromFile("./config.client.json")
-	config := new(lygo_n_client.NClientSettings)
+	config := new(lygo_n_conn.NClientSettings)
 	config.Parse(text_cfg)
 
 	return config
 }
 
-func initialize(app *lygo_n_server.NServer) {
-	app.Server().Route.Get("*", func(ctx *fiber.Ctx) {
+func initializeHttp(http *lygo_http_server.HttpServer) {
+	http.Route.Get("*", func(ctx *fiber.Ctx) {
 		ctx.Write("ROOT\n")
 		ctx.Write(ctx.BaseURL())
 		ctx.Write(ctx.OriginalURL())
 		ctx.Next()
 	})
-	g := app.Server().Route.Group("/api", func(ctx *fiber.Ctx) {
+	g := http.Route.Group("/api", func(ctx *fiber.Ctx) {
 		id := ctx.Params("id")
 
 		ctx.Write("/api\n")
@@ -250,14 +389,3 @@ func initialize(app *lygo_n_server.NServer) {
 	})
 }
 
-func onMessage(method string, message *lygo_n_commons.Message) (interface{}, bool) {
-	var response interface{} = nil
-	handled := true
-	switch method {
-	case "sys.version":
-		response = "SHOULD NOT HANDLE THIS!!!!"
-	default:
-		handled = false // command not found
-	}
-	return response, handled
-}

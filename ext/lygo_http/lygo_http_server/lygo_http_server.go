@@ -29,7 +29,7 @@ type HttpServer struct {
 	Route *lygo_http_server_config.HttpServerConfigRoute
 
 	//-- private --//
-	enabled    bool
+	enabled    bool // len(hosts)>0
 	services   map[string]*HttpServerService
 	middleware []*lygo_http_server_config.HttpServerConfigRouteItem
 	websocket  []*HttpServerConfigRouteWebsocket

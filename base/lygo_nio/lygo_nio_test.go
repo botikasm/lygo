@@ -24,9 +24,9 @@ func TestRunServer(t *testing.T) {
 		server.Close()
 	}()
 
-	fmt.Println("Server listening on port:", server.port)
+	fmt.Println("Http listening on port:", server.port)
 	server.Join()
-	fmt.Println("Server CLOSE")
+	fmt.Println("Http CLOSE")
 }
 
 func TestRunClientPing(t *testing.T) {
@@ -36,7 +36,7 @@ func TestRunClientPing(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	fmt.Println("Server listening on port:", server.port)
+	fmt.Println("Http listening on port:", server.port)
 
 	// start and stop server every 3 secs
 	go func() {
