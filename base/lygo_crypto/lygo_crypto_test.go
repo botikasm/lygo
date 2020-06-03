@@ -38,3 +38,14 @@ func TestAESWithPrefix(t *testing.T) {
 	}
 	fmt.Println(dec)
 }
+
+func TestDecryptWithPrivateKey(t *testing.T) {
+	seed := "customer_01"
+	text :="enc-U4F9HoBlsgyKd049KEZNC+1mJh0YWwvSen8gLQkyD1M="
+	resp, err :=DecryptTextWithPrefix(text, []byte(seed))
+	if nil!=err{
+		t.Error(err)
+		t.FailNow()
+	}
+	fmt.Println(resp)
+}
