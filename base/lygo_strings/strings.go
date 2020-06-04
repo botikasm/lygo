@@ -1,8 +1,10 @@
 package lygo_strings
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_conv"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -19,6 +21,24 @@ func Trim(slice []string, trimVal string) {
 	for i := range slice {
 		slice[i] = strings.Trim(slice[i], trimVal)
 	}
+}
+
+func Clear(text string) string {
+	var buf bytes.Buffer
+	lines := strings.Split(text, "\n")
+	count := 0
+	for _, line:=range lines{
+		space := regexp.MustCompile(`\s+`)
+		s := strings.TrimSpace(space.ReplaceAllString(line, " "))
+		if len(s)>0{
+			if count>0{
+				buf.WriteString("\n")
+			}
+			buf.WriteString(strings.TrimSpace(s))
+			count++
+		}
+	}
+	return buf.String()
 }
 
 func Concat(params ...interface{}) string {

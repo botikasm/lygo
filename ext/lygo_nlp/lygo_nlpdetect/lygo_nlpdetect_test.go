@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestFranco(t *testing.T) {
+func TestDetectLang(t *testing.T) {
 
 	fisxtureFile, e := ioutil.ReadFile("test.json")
 	if e != nil {

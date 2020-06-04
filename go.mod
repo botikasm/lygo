@@ -31,9 +31,9 @@ require (
 	github.com/unidoc/unioffice v1.3.0
 	github.com/valyala/fasthttp v1.11.0
 	go.etcd.io/bbolt v1.3.4
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
-	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/text v0.3.2
 	gopkg.in/gographics/imagick.v3 v3.3.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

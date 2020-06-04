@@ -92,3 +92,9 @@ func TestFill(t *testing.T) {
 	s = FillRight("123", 10, '*')
 	fmt.Println(s)
 }
+
+func TestClear(t *testing.T) {
+	text := "this is \n\r    a text  \nmultiline\ntext"
+	s := Clear(text)
+	fmt.Println(s)
+}
