@@ -1,6 +1,17 @@
 package lygo_paths
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
+
+func TestFileName(t *testing.T) {
+	urls := []string{"http://domain.com/dir/file.html", "http://domain.com/"}
+	for _, url := range urls {
+		name := FileName(url, true)
+		fmt.Println(name)
+	}
+}
 
 func TestAbsolute(t *testing.T) {
 	type args struct {

@@ -4,6 +4,7 @@ import (
 	"github.com/botikasm/lygo"
 	"github.com/botikasm/lygo/base/lygo_regex"
 	"github.com/botikasm/lygo/base/lygo_rnd"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -94,12 +95,24 @@ func ExtensionName(path string) string {
 }
 
 func FileName(path string, includeExt bool) string {
-	base := filepath.Base(path)
-	if includeExt {
-		return base
+	if IsUrl(path) {
+		uri, err := url.Parse(path)
+		if nil != err {
+			return ""
+		}
+		path := uri.Path
+		if len(path) > 1 {
+			return FileName(path, includeExt)
+		}
+		return ""
 	} else {
-		ext := filepath.Ext(base)
-		return strings.Replace(base, ext, "", 1)
+		base := filepath.Base(path)
+		if includeExt {
+			return base
+		} else {
+			ext := filepath.Ext(base)
+			return strings.Replace(base, ext, "", 1)
+		}
 	}
 }
 
@@ -167,6 +180,17 @@ func IsFile(path string) (bool, error) {
 		}
 		return true, err
 	}
+}
+
+func IsAbs(path string) bool {
+	if IsUrl(path) {
+		return true
+	}
+	return filepath.IsAbs(path)
+}
+
+func IsUrl(path string) bool {
+	return strings.Index(path, "http") == 0
 }
 
 func IsSymLink(path string) (bool, error) {

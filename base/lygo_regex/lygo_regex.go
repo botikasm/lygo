@@ -309,6 +309,18 @@ func WildcardIndexLenPair(text string, pattern string, offset int) [][]int {
 	return indexLenPair(text, regex, offset)
 }
 
+// WildcardIndexArray works like WildcardIndex but cycle on an array of pattern elements
+func WildcardIndexArray(text string, patterns []string, offset int) [][]int {
+	response := make([][]int, 0)
+	for _, pattern := range patterns {
+		match := WildcardIndex(text, pattern, offset)
+		if len(match) > 0 {
+			response = append(response, match)
+		}
+	}
+	return response
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	e x p    l o o k u p
 //----------------------------------------------------------------------------------------------------------------------

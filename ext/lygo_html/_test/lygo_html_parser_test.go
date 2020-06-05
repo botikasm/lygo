@@ -40,6 +40,9 @@ func TestParser(t *testing.T) {
 		t.FailNow()
 	}
 
+	path := parser.BaseUrl()
+	fmt.Println("path", path)
+
 	lang := parser.Lang()
 	if len(lang) == 0 {
 		t.Error("Expected lang")

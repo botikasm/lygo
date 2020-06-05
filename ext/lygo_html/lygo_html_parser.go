@@ -12,6 +12,8 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/text/language"
 	"io"
+	"net/url"
+	"path/filepath"
 	"strings"
 )
 
@@ -47,7 +49,9 @@ func (instance *SemanticBlock) String() string {
 //----------------------------------------------------------------------------------------------------------------------
 
 type HtmlParser struct {
-	html *html.Node
+	html     *html.Node
+	path     string
+	fileName string
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -57,10 +61,22 @@ type HtmlParser struct {
 func NewHtmlParser(input interface{}) (*HtmlParser, error) {
 	var doc *html.Node
 	var err error
+	var path string
+	var fileName string
 
 	// parse input data
 	if v, b := input.(string); b {
-		doc, err = parseString(v)
+		if isURL(v) {
+			doc, err = parseURL(v)
+			path = v
+			fileName = lygo_paths.FileName(path, true)
+		} else if b, err := lygo_paths.IsFile(v); b && nil == err {
+			doc, err = parseFile(v)
+			path = lygo_paths.Absolute(v)
+			fileName = lygo_paths.FileName(path, true)
+		} else {
+			doc, err = parseString(v)
+		}
 	} else if v, b := input.(io.Reader); b {
 		doc, err = parse(v)
 	}
@@ -70,6 +86,12 @@ func NewHtmlParser(input interface{}) (*HtmlParser, error) {
 	} else {
 		instance := new(HtmlParser)
 		instance.html = doc
+		instance.path = path
+		if len(fileName)==0{
+			fileName = "index.html"
+		}
+		instance.fileName = fileName
+
 		return instance, nil
 	}
 }
@@ -83,6 +105,50 @@ func (instance *HtmlParser) String() string {
 		return renderNode(instance.html)
 	}
 	return ""
+}
+
+func (instance *HtmlParser) Path() string {
+	if nil != instance {
+		return instance.path
+	}
+	return ""
+}
+
+func (instance *HtmlParser) FileName() string {
+	if nil != instance {
+		return instance.fileName
+	}
+	return ""
+}
+
+func (instance *HtmlParser) BaseUrl() string {
+	if nil != instance {
+		if instance.IsURL() {
+			uri, err := url.Parse(instance.path)
+			if nil == err {
+				path := uri.Scheme + "://" + uri.Host
+				if len(uri.Port()) > 0 && (uri.Port() != "80" || uri.Port() != "443") {
+					path += ":" + uri.Port()
+				}
+				ext := filepath.Ext(uri.Path)
+				if len(ext) > 0 {
+					path += filepath.Dir(uri.Path)
+				} else {
+					path += uri.Path + "/"
+				}
+				return path
+			}
+		}
+		return filepath.Dir(instance.path)
+	}
+	return ""
+}
+
+func (instance *HtmlParser) IsURL() bool {
+	if nil != instance {
+		return isURL(instance.path)
+	}
+	return false
 }
 
 func (instance *HtmlParser) Lang() string {
@@ -224,8 +290,8 @@ func (instance *HtmlParser) GelLinkURLs() []string {
 		links := queryNodes(instance.html, "a")
 		for _, link := range links {
 			href := getAttr(link, "href")
-			if len(href) > 0 {
-				response = append(response, href)
+			if len(href) > 0 && strings.Index(href, "#") != 0 {
+				response = lygo_array.AppendUnique(response, href).([]string)
 			}
 		}
 	}
@@ -305,6 +371,10 @@ func renderNode(n *html.Node) string {
 		return buf.String()
 	}
 	return ""
+}
+
+func isURL(path string) bool {
+	return strings.Index(path, "http") == 0
 }
 
 func isTitle(node *html.Node) (bool, int) {

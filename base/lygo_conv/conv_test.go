@@ -1,9 +1,11 @@
 package lygo_conv
 
 import (
+	"fmt"
 	"github.com/arangodb/go-velocypack/test"
 	"testing"
 )
+
 
 func TestToString(t *testing.T) {
 	type args struct {
@@ -29,6 +31,11 @@ func TestToString(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestToInt(t *testing.T) {
+	var v interface{} = 12345678.456
+	fmt.Println(fmt.Sprintf("%v", ToInt(v)))
 }
 
 func TestToArray(t *testing.T) {
