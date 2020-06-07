@@ -102,7 +102,10 @@ func FileName(path string, includeExt bool) string {
 		}
 		path := uri.Path
 		if len(path) > 1 {
-			return FileName(path, includeExt)
+			ext := ExtensionName(path)
+			if len(ext)>0{
+				return FileName(path, includeExt)
+			}
 		}
 		return ""
 	} else {

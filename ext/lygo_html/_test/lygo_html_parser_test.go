@@ -65,7 +65,7 @@ func TestParser(t *testing.T) {
 	})
 
 	fmt.Println("LINKS:")
-	links := parser.GelLinkURLs()
+	links := parser.GetLinkURLs()
 	if len(links) == 0 {
 		t.Error("Expected some links")
 		t.FailNow()
@@ -126,5 +126,24 @@ func TestParserSemantic(t *testing.T) {
 	for _, block := range blocks {
 		fmt.Println("\t", "title: ", block.Title)
 		fmt.Println("\t", "lang: ", block.Lang)
+		fmt.Println("\t", "block: ", block.Json())
 	}
+}
+
+func TestParserPAth(t *testing.T) {
+
+	paths:=[]string{"./pages/index.html", "https://gianangelogeminiani.me", "https://gianangelogeminiani.me/blog/", "https://gianangelogeminiani.me/intelligenza-artificiale-internet-of-things-e-blockchain-alla-portata-dei-tuoi-sistemi-informativi-ma-si-puo-fare/"}
+
+	for _, path:=range paths{
+		parser, err := lygo_html.NewHtmlParser(path)
+		if nil != err {
+			t.Error(err)
+			t.FailNow()
+		}
+		fmt.Println("path", parser.Path())
+		fmt.Println("root", parser.RootUrl())
+		fmt.Println("base", parser.BaseUrl())
+		fmt.Println("file", parser.FileName())
+	}
+
 }

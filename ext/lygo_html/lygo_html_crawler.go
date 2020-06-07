@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_async"
+	"github.com/botikasm/lygo/base/lygo_crypto"
+	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_io"
 	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_paths"
@@ -12,15 +14,41 @@ import (
 )
 
 //----------------------------------------------------------------------------------------------------------------------
+//	c o n s t
+//----------------------------------------------------------------------------------------------------------------------
+
+const (
+	EventOnContent = "on_content"
+)
+
+var (
+	DefaultBlackList = []string{
+		"http*//*facebook.*",
+		"http*//*github.*",
+		"http*//*linkedin.*",
+		"http*//*bitbucket.*",
+		"http*//*pinterest.*",
+		"http*//*instagram.*",
+		"http*//*twitter.*",
+		"http*//*telegram.*",
+		"http*//*google.*",
+		"http*//*repubblica.*",
+		"http*//*akismet.*",
+		"http*//*jetpack.*",
+	}
+)
+
+//----------------------------------------------------------------------------------------------------------------------
 //	HtmlCrawlerSettings
 //----------------------------------------------------------------------------------------------------------------------
 
 type HtmlCrawlerSettings struct {
-	StartPoints    []string `json:"start_points"`
-	MaxThreads     int      `json:"max_threads"`
-	AllowExternals bool     `json:"allow_externals"` // are allowed external links
-	WhiteList      []string `json:"while_list"`      // always allowed
-	BlackList      []string `json:"black_list"`      // never allowed
+	StartPoints             []string `json:"start_points"`
+	MaxThreads              int      `json:"max_threads"`
+	AllowExternals          bool     `json:"allow_externals"` // are allowed external links
+	WhiteList               []string `json:"while_list"`      // always allowed
+	BlackList               []string `json:"black_list"`      // never allowed
+	ExcludeDefaultBlackList bool     `json:"exclude_default_black_list"`
 }
 
 func (instance *HtmlCrawlerSettings) String() string {
@@ -39,6 +67,17 @@ func LoadHtmlCrawlerSettings(filename string) (*HtmlCrawlerSettings, error) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+//	HtmlCrawlerContend
+//----------------------------------------------------------------------------------------------------------------------
+
+type HtmlCrawlerContend struct {
+	Url    string           `json:"url"`
+	Blocks []*SemanticBlock `json:"blocks"`
+	Error  string           `json:"error"`
+	Links  []string         `json:"links"`
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 //	HtmlCrawler
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,6 +92,8 @@ type HtmlCrawler struct {
 	history    []string
 	chanURL    chan string
 	chanExit   chan bool
+	events     *lygo_events.Emitter
+	handler    func(content *HtmlCrawlerContend)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -65,10 +106,15 @@ func NewHtmlCrawler(settings *HtmlCrawlerSettings) *HtmlCrawler {
 	instance.chanURL = make(chan string)
 	instance.chanExit = make(chan bool)
 	instance.history = make([]string, 0)
+	instance.events = lygo_events.NewEmitter()
+	instance.events.On(EventOnContent, instance.onContent)
 	if nil != settings {
 		instance.Settings = settings
 	} else {
 		instance.Settings = new(HtmlCrawlerSettings)
+	}
+	if !instance.Settings.ExcludeDefaultBlackList {
+		instance.Settings.BlackList = append(instance.Settings.BlackList, DefaultBlackList...)
 	}
 
 	return instance
@@ -80,7 +126,7 @@ func NewHtmlCrawler(settings *HtmlCrawlerSettings) *HtmlCrawler {
 
 func (instance *HtmlCrawler) String() string {
 	if nil != instance {
-
+		return fmt.Sprintf("Crawled %v pages", len(instance.history))
 	}
 	return ""
 }
@@ -134,6 +180,12 @@ func (instance *HtmlCrawler) Crawl(path string) {
 	}
 }
 
+func (instance *HtmlCrawler) OnContent(callback func(event *HtmlCrawlerContend)) {
+	if nil != instance && nil != callback {
+		instance.handler = callback
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------
@@ -147,13 +199,23 @@ func (instance *HtmlCrawler) start() {
 	}
 }
 
+func (instance *HtmlCrawler) onContent(event *lygo_events.Event) {
+	if nil != instance.handler {
+		if v, b := event.Argument(0).(*HtmlCrawlerContend); b {
+			if nil != instance.handler {
+				instance.handler(v)
+			}
+		}
+	}
+}
+
 func (instance *HtmlCrawler) crawl(path string) {
 	instance.mux.Lock()
 	defer instance.mux.Unlock()
 	if !instance.stopped && nil != instance.pool {
 		startJob(0, path, instance.Settings.AllowExternals,
 			instance.Settings.BlackList, instance.Settings.WhiteList,
-			instance.pool, instance.historyExists)
+			instance.events, instance.pool, instance.historyExists)
 	}
 }
 
@@ -161,9 +223,10 @@ func (instance *HtmlCrawler) historyExists(path string) bool {
 	if nil != instance {
 		instance.historyMux.Lock()
 		defer instance.historyMux.Unlock()
-		exists := lygo_array.IndexOf(path, instance.history) > -1
+		key := lygo_crypto.MD5(path)
+		exists := lygo_array.IndexOf(key, instance.history) > -1
 		if !exists {
-			instance.history = append(instance.history, path)
+			instance.history = append(instance.history, key)
 		}
 		return exists
 	}
@@ -174,47 +237,55 @@ func (instance *HtmlCrawler) historyExists(path string) bool {
 //	S T A T I C
 //----------------------------------------------------------------------------------------------------------------------
 
-func startJob(level int, path string, allowExternal bool, blackList []string, whiteList []string, pool *lygo_async.ConcurrentPool, historyFunc func(string) bool) {
+func UrlMatch(url string, list []string) bool {
+	return len(lygo_regex.WildcardIndexArray(url, list, 0)) > 0
+}
+
+func startJob(level int, path string, allowExternal bool, blackList []string, whiteList []string, events *lygo_events.Emitter, pool *lygo_async.ConcurrentPool, historyFunc func(string) bool) {
+	// fmt.Println("startJob",path)
 	pool.Run(func() {
+		content := new(HtmlCrawlerContend)
+		content.Url = path
 		//get content
 		parser, err := NewHtmlParser(path)
 		if nil != err {
 			// some error in url or network
-			fmt.Println("ERROR", err, path)
+			content.Error = err.Error()
 		} else {
 			// base
+			rootUrl := parser.RootUrl()
 			baseUrl := parser.BaseUrl()
 			fullUrl := lygo_paths.Concat(baseUrl, parser.FileName())
 
 			// url blocks
-			blocks := parser.SemanticBlocksAll()
-			if len(blocks) > 0 {
-
-			}
+			content.Blocks = parser.SemanticBlocksAll()
 
 			// links for children
-			links := parser.GelLinkURLs()
-			for _, link := range links {
-				isExternal := len(lygo_regex.WildcardIndex(link, baseUrl+"*", 0)) == 0
+			content.Links = parser.GetLinkURLs()
+			for _, link := range content.Links {
+				isExternal := len(lygo_regex.WildcardIndex(link, rootUrl+"/*", 0)) == -1
 				if isExternal && !allowExternal {
 					continue
 				}
 				isAbsolute := lygo_paths.IsAbs(link)
 				if len(lygo_regex.WildcardIndexArray(link, blackList, 0)) == 0 || len(lygo_regex.WildcardIndexArray(link, whiteList, 0)) > 0 {
 					// this is a good link to parse
-					fmt.Println(link, isAbsolute, isExternal)
+					// fmt.Println(link, isAbsolute, isExternal)
 					if isExternal && isAbsolute && !historyFunc(link) {
-						startJob(level+1, link, false, blackList, whiteList, pool, historyFunc)
+						go startJob(level+1, link, false, blackList, whiteList, events, pool, historyFunc)
 					} else {
 						if !isAbsolute {
 							link = lygo_paths.Concat(baseUrl, link)
 						}
 						if link != fullUrl && !historyFunc(link) {
-							startJob(level, link, false, blackList, whiteList, pool, historyFunc)
+							go startJob(level, link, false, blackList, whiteList, events, pool, historyFunc)
 						}
 					}
 				}
-			}
-		}
+			} // for
+		} // no error
+
+		// raise content event
+		events.EmitAsync(EventOnContent, content)
 	})
 }

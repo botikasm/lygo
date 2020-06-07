@@ -98,3 +98,9 @@ func TestClear(t *testing.T) {
 	s := Clear(text)
 	fmt.Println(s)
 }
+
+func TestSub(t *testing.T) {
+	text := "https://www.facebook.com/Tin-Bòta-1504132526533556/?ref=py_c"
+	sub := Sub(text, 0, len(text))
+	fmt.Println(sub)
+}

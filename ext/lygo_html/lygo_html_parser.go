@@ -5,6 +5,7 @@ import (
 	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_io"
+	"github.com/botikasm/lygo/base/lygo_json"
 	"github.com/botikasm/lygo/base/lygo_paths"
 	"github.com/botikasm/lygo/base/lygo_strings"
 	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_client"
@@ -22,22 +23,41 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 type SemanticBlock struct {
-	Lang     string // detected language (may be different from page lang)
-	Level    int    // title level. 0 is when a block is free text with no title
-	Title    string
-	Body     bytes.Buffer
-	Keywords []string
+	Lang     string   `json:"lang"`  // detected language (may be different from page lang)
+	Level    int      `json:"level"` // title level. 0 is when a block is free text with no title
+	Title    string   `json:"title"`
+	Body     string   `json:"body"`
+	Keywords []string `json:"keywords"`
+
+	//-- private --//
+	body bytes.Buffer
 }
 
-func (instance *SemanticBlock) String() string {
+func (instance *SemanticBlock) Json() string {
+	if nil != instance {
+		instance.Body = instance.GetBody()
+		return lygo_json.Stringify(instance)
+	}
+	return ""
+}
+
+func (instance *SemanticBlock) GetBody() string {
+	if nil != instance {
+		return instance.body.String()
+	}
+	return ""
+}
+
+
+func (instance *SemanticBlock) GetText() string {
 	if nil != instance {
 		var buf bytes.Buffer
 		if len(instance.Title) > 0 {
 			buf.WriteString(instance.Title)
 			buf.WriteString("\n")
 		}
-		if instance.Body.Len() > 0 {
-			buf.Write(instance.Body.Bytes())
+		if instance.body.Len() > 0 {
+			buf.Write(instance.body.Bytes())
 		}
 		return buf.String()
 	}
@@ -87,9 +107,6 @@ func NewHtmlParser(input interface{}) (*HtmlParser, error) {
 		instance := new(HtmlParser)
 		instance.html = doc
 		instance.path = path
-		if len(fileName)==0{
-			fileName = "index.html"
-		}
 		instance.fileName = fileName
 
 		return instance, nil
@@ -116,7 +133,27 @@ func (instance *HtmlParser) Path() string {
 
 func (instance *HtmlParser) FileName() string {
 	if nil != instance {
+		if len(instance.fileName) == 0  && instance.BaseUrl()==instance.RootUrl(){
+			return "index.html"
+		}
 		return instance.fileName
+	}
+	return ""
+}
+
+func (instance *HtmlParser) RootUrl() string {
+	if nil != instance {
+		if instance.IsURL() {
+			uri, err := url.Parse(instance.path)
+			if nil == err {
+				path := uri.Scheme + "://" + uri.Host
+				if len(uri.Port()) > 0 && (uri.Port() != "80" || uri.Port() != "443") {
+					path += ":" + uri.Port()
+				}
+				return filepath.Join(path, "/")
+			}
+		}
+		return filepath.Dir(instance.path)
 	}
 	return ""
 }
@@ -134,9 +171,9 @@ func (instance *HtmlParser) BaseUrl() string {
 				if len(ext) > 0 {
 					path += filepath.Dir(uri.Path)
 				} else {
-					path += uri.Path + "/"
+					path += uri.Path
 				}
-				return path
+				return filepath.Join(path, "/")
 			}
 		}
 		return filepath.Dir(instance.path)
@@ -284,7 +321,7 @@ func (instance *HtmlParser) GelLinks() []*html.Node {
 	return []*html.Node{}
 }
 
-func (instance *HtmlParser) GelLinkURLs() []string {
+func (instance *HtmlParser) GetLinkURLs() []string {
 	response := make([]string, 0)
 	if nil != instance && nil != instance.html {
 		links := queryNodes(instance.html, "a")
@@ -422,7 +459,7 @@ func semantic(lang string, node *html.Node) []*SemanticBlock {
 		if node.Data != "title" && nil != node.FirstChild && node.FirstChild.Type == html.TextNode {
 			if b, level := isTitle(node); b {
 				// new block
-				if tmpBlock.Body.Len() > 0 || len(tmpBlock.Title) > 0 {
+				if tmpBlock.body.Len() > 0 || len(tmpBlock.Title) > 0 {
 					response = append(response, tmpBlock)
 				}
 				tmpBlock = new(SemanticBlock)
@@ -432,21 +469,21 @@ func semantic(lang string, node *html.Node) []*SemanticBlock {
 			} else {
 				text := unescape(renderNode(node.FirstChild))
 				if len(text) > 0 {
-					tmpBlock.Body.WriteString(text + "\n")
+					tmpBlock.body.WriteString(text + "\n")
 				}
 			}
 		}
 		return false // next
 	})
 
-	if tmpBlock.Body.Len() > 0 {
+	if tmpBlock.body.Len() > 0 {
 		response = append(response, tmpBlock)
 	}
 
 	// semantic check
 	for _, block := range response {
 		// detect language
-		lang := detectLanguage(block.String())
+		lang := detectLanguage(block.GetText())
 		if len(lang) > 0 {
 			block.Lang = lang
 		}

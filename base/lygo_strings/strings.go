@@ -120,13 +120,14 @@ func SplitAndGetAt(s string, seps string, index int) string {
 // @param start int Start index
 // @param end int End index
 func Sub(s string, start int, end int) string {
+	runes := []rune(s) // convert in rune to handle all characters.
 	if start < 0 || start > end {
 		start = 0
 	}
-	if end > len(s) {
-		end = len(s)
+	if end > len(runes) {
+		end = len(runes)
 	}
-	runes := []rune(s) // convert in rune to handle all characters.
+
 
 	return string(runes[start:end])
 }
