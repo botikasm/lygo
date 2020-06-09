@@ -32,6 +32,8 @@ type N struct {
 	http        *NHttp            // http interface
 	discovery   *NDiscovery
 	events      *lygo_events.Emitter
+	stopChan    chan bool
+	status      int
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -40,6 +42,8 @@ type N struct {
 
 func NewNode(settings *lygo_n_commons.NSettings) *N {
 	instance := new(N)
+	instance.stopChan = make(chan bool, 1)
+	instance.status = -1
 	instance.Settings = settings
 
 	if nil == instance.Settings {
@@ -129,16 +133,30 @@ func (instance *N) Events() *lygo_events.Emitter {
 
 func (instance *N) Start() []error {
 	if nil != instance {
-		return instance.open()
+		if instance.status < 1 {
+			instance.status = 1
+			return instance.open()
+		}
 	}
 	return []error{lygo_n_commons.PanicSystemError}
 }
 
 func (instance *N) Stop() []error {
 	if nil != instance {
-		return instance.close()
+		if instance.status == 1 {
+			instance.status = 0
+			return instance.close()
+		}
 	}
 	return []error{lygo_n_commons.PanicSystemError}
+}
+
+func (instance *N) Join() {
+	if nil != instance {
+		if instance.status == 1 {
+			<-instance.stopChan
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
