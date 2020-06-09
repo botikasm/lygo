@@ -83,6 +83,7 @@ type HtmlCrawlerContend struct {
 
 type HtmlCrawler struct {
 	Settings *HtmlCrawlerSettings
+	HistoryCallback func(path string)bool
 
 	//-- private --//
 	stopped    bool
@@ -116,6 +117,7 @@ func NewHtmlCrawler(settings *HtmlCrawlerSettings) *HtmlCrawler {
 	if !instance.Settings.ExcludeDefaultBlackList {
 		instance.Settings.BlackList = append(instance.Settings.BlackList, DefaultBlackList...)
 	}
+	instance.HistoryCallback = instance.historyExists // override this to customize history management
 
 	return instance
 }
@@ -215,10 +217,11 @@ func (instance *HtmlCrawler) crawl(path string) {
 	if !instance.stopped && nil != instance.pool {
 		startJob(0, path, instance.Settings.AllowExternals,
 			instance.Settings.BlackList, instance.Settings.WhiteList,
-			instance.events, instance.pool, instance.historyExists)
+			instance.events, instance.pool, instance.HistoryCallback)
 	}
 }
 
+// historyExists check if url was already scanned
 func (instance *HtmlCrawler) historyExists(path string) bool {
 	if nil != instance {
 		instance.historyMux.Lock()
