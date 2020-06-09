@@ -165,28 +165,43 @@ func (instance *N) RegisterCommand(command string, handler lygo_n_net.CommandHan
 	}
 }
 
+// Execute run local command
+func (instance *N) Execute(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
+	if nil != instance {
+		server := instance.getServer()
+		if nil != server {
+			return server.Execute(commandName, params)
+		}
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 //		m e s s a g e    s e n d e r
 // ---------------------------------------------------------------------------------------------------------------------
 
+// Send try to run remote command, if not possible run a local command but always uses a connection as bridge if Network of Nodes is enabled
 func (instance *N) Send(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
 	if nil != instance {
 		if instance.initialized && nil != instance.discovery {
-			// try registered node
-			conn := instance.discovery.AcquireNode()
-			if nil != conn {
-				defer instance.discovery.ReleaseNode(conn)
-
-				return conn.Send(commandName, params)
-			} else {
-				// try internal host if enabled
-				conn = instance.getSelfHostedConn()
+			if nil != instance.discovery && instance.discovery.IsNetworkOfNodesEnabled() {
+				// try registered node
+				conn := instance.discovery.AcquireNode() // always nil if network_id is empty
 				if nil != conn {
+					defer instance.discovery.ReleaseNode(conn)
+
 					return conn.Send(commandName, params)
+				} else {
+					// try internal host if enabled
+					conn = instance.getSelfHostedConn()
+					if nil != conn {
+						return conn.Send(commandName, params)
+					}
 				}
 			}
 		}
-		return nil
+		// fallback
+		return instance.Execute(commandName, params)
 	}
 	return &lygo_n_commons.Response{
 		Error: lygo_n_commons.PanicSystemError.Error(),

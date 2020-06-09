@@ -119,11 +119,25 @@ func TestNodeNoNetworks(t *testing.T) {
 
 	registerCommands(node)
 
+	// test LOCAL command
+	response := node.Execute("get.version", nil)
+	if response.HasError() {
+		t.Error(response.Error)
+		t.FailNow()
+	}
+	if nil != response {
+		body := response.GetDataAsString()
+		fmt.Println("Response to LOCAL command:", "sys.version", string(body), "FROM: LOCAL")
+	} else {
+		t.Error("Missing LOCAL response")
+		t.FailNow()
+	}
+
 	// wait internal server starts
 	time.Sleep(3 * time.Second)
 
-	// test command
-	response := node.Send("get.version", nil)
+	// test node command
+	response = node.Send("get.version", nil)
 	if response.HasError() {
 		t.Error(response.Error)
 		t.FailNow()
@@ -132,6 +146,8 @@ func TestNodeNoNetworks(t *testing.T) {
 		body := response.GetDataAsString()
 		fmt.Println("Response to command:", "sys.version", string(body), "FROM:", response.Info.Name)
 	}
+
+
 
 	errs = node.Stop()
 	if len(errs) > 0 {

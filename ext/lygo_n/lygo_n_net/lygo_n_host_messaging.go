@@ -1,6 +1,7 @@
 package lygo_n_net
 
 import (
+	"github.com/botikasm/lygo/base/lygo_array"
 	"github.com/botikasm/lygo/base/lygo_conv"
 	"github.com/botikasm/lygo/base/lygo_events"
 	"github.com/botikasm/lygo/base/lygo_json"
@@ -56,6 +57,26 @@ func (instance *MessagingController) RegisterNS(namespace, function string, hand
 	}
 }
 
+func (instance *MessagingController) Execute(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
+	if nil != instance {
+		tokens := strings.Split(commandName, ".")
+		command := &lygo_n_commons.Command{
+			AppToken:  lygo_n_commons.AppToken,
+			Namespace: lygo_array.GetAt(tokens, 0, "").(string),
+			Function:  lygo_array.GetAt(tokens, 1, "").(string),
+			Params:    params,
+		}
+		message := new(lygo_n_commons.Message)
+		message.Payload = command
+
+		// execute
+		instance.execute(message)
+
+		return message.Response
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // 		p r i v a t e
 // ---------------------------------------------------------------------------------------------------------------------
@@ -66,13 +87,13 @@ func (instance *MessagingController) handleNioMessage(nioMessage *lygo_nio.NioMe
 	body := lygo_conv.ToString(nioMessage.Body)
 	if strings.Index(body, "{") > -1 {
 		err := lygo_json.Read(body, &message.Payload)
-		if nil!=err{
+		if nil != err {
 			message.Response = &lygo_n_commons.Response{
 				Info:  instance.app.Info,
 				Error: err.Error(),
 				Data:  nil,
 			}
-		}else {
+		} else {
 			instance.execute(message)
 		}
 		// return instance.execute(message)

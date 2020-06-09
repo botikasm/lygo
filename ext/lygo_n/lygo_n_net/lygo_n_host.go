@@ -145,6 +145,15 @@ func (instance *NHost) AddCommandNS(namespace, function string, handler CommandH
 	}
 }
 
+func (instance *NHost) Execute(commandName string, params map[string]interface{}) *lygo_n_commons.Response {
+	if nil != instance {
+		if nil != instance.messaging {
+			return instance.messaging.Execute(commandName, params)
+		}
+	}
+	return nil
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //	p r i v a t e
 //----------------------------------------------------------------------------------------------------------------------

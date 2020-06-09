@@ -119,37 +119,47 @@ func (instance *NDiscovery) Nodes() []string {
 	return response
 }
 
+func (instance *NDiscovery) IsNetworkOfNodesEnabled() bool {
+	if nil != instance {
+		return len(instance.config.NetworkId) > 0
+	}
+	return false
+}
+
 func (instance *NDiscovery) AcquireNode() *lygo_n_net.NConn {
 	var response *lygo_n_net.NConn = nil
-	nodes := instance.Nodes()
-	if len(nodes) > 0 {
-		for _, node := range nodes {
-			na := lygo_n_commons.NewNAddress(node)
-			host := na.Host()
-			port := na.Port()
-			conn := lygo_n_net.NewNConn(host, port)
-			errs, _ := conn.Start()
-			if len(errs) == 0 {
-				if instance.storage.IsLockedNode(node) {
-					// add locked node only if no node have still been assigned
-					if nil == response {
+	if instance.IsNetworkOfNodesEnabled() {
+		nodes := instance.Nodes() // get network nodes
+		if len(nodes) > 0 {
+			for _, node := range nodes {
+				na := lygo_n_commons.NewNAddress(node)
+				host := na.Host()
+				port := na.Port()
+				conn := lygo_n_net.NewNConn(host, port)
+				errs, _ := conn.Start()
+				if len(errs) == 0 {
+					if instance.storage.IsLockedNode(node) {
+						// add locked node only if no node have still been assigned
+						if nil == response {
+							response = conn
+						}
+					} else {
+						if nil != response {
+							response.Stop()
+						}
 						response = conn
+						break
 					}
 				} else {
-					if nil != response {
-						response.Stop()
-					}
-					response = conn
-					break
+					instance.removeNode(na)
 				}
-			} else {
-				instance.removeNode(na)
 			}
 		}
+		if nil != response {
+			instance.storage.LockNode(response.GetAddress())
+		}
 	}
-	if nil != response {
-		instance.storage.LockNode(response.GetAddress())
-	}
+
 	return response
 }
 
