@@ -280,16 +280,16 @@ func ChangeFileNameExtension(fromPath, toFileExtension string) string {
 	return filepath.Join(parent, name+ensureDot(toFileExtension))
 }
 
-func ChangeFileNameWithSuffix(fileName, suffix string) string {
-	base := filepath.Base(fileName)
+func ChangeFileNameWithSuffix(path, suffix string) string {
+	base := filepath.Base(path)
 	ext := filepath.Ext(base)
 	name := strings.Replace(base, ext, "", 1)
-	return filepath.Join(filepath.Dir(fileName), name+suffix+ext)
+	return filepath.Join(filepath.Dir(path), name+suffix+ext)
 }
 
-func ChangeFileNameWithPrefix(fileName, prefix string) string {
-	base := filepath.Base(fileName)
-	return filepath.Join(filepath.Dir(fileName), prefix+base)
+func ChangeFileNameWithPrefix(path, prefix string) string {
+	base := filepath.Base(path)
+	return filepath.Join(filepath.Dir(path), prefix+base)
 }
 
 func CleanPath(p string) string {

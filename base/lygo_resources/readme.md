@@ -20,14 +20,14 @@ Sample:
 ```
 func Generate(){
     var generator *lygo_resources.Generator = lygo_resources.NewGenerator()
-    generator.Package = "test"
-    generator.Directory = "./test/resources"
-    generator.OutputFile = "./test/blobResources.go"
+    generator.Package = "resources"
+    generator.Directory = "./test/src_resources"
+    generator.OutputFile = "./test/resources/blob{{ .count }}.go"
     generator.Start()
 }
 func UseResource() {
-	// get resource
-	data, found := lygo_resources.Get("/my_resource.txt")
+	// get resource: uses "resources.go" generated file
+	data, found := resources.Get("/my_resource.txt")
 	if !found {
 		fmt.Prinln("Resource not found")
 	}

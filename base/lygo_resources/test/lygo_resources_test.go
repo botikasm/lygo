@@ -4,18 +4,24 @@ import (
 	"fmt"
 	"github.com/botikasm/lygo/base/lygo_exec"
 	"github.com/botikasm/lygo/base/lygo_resources"
+	"github.com/botikasm/lygo/base/lygo_resources/test/resources"
 	"os"
 	"testing"
 )
 
+const packageName = "resources"
+const startDirectory = "src_resources"
+
 func TestGenerator(t *testing.T) {
 	// run generator
 	generator := lygo_resources.NewGenerator()
-	generator.Package = "test"
+	generator.Package = packageName
+	generator.StartDirectory = startDirectory
+	// generator.OutputFile = "./" + packageName + "/blob_{{ .count }}.go"
 	generator.Exclude = []string{"/excluded/"}
+	generator.ForceSingleResourceFile = true // creates a single file ignoring custom "OutputFile" param
 	generator.Start()
 }
-
 
 func TestGeneratorSh(t *testing.T) {
 	// run generator
@@ -27,13 +33,14 @@ func TestGeneratorSh(t *testing.T) {
 }
 
 func TestResource(t *testing.T) {
-	// get resource
-	data, found := lygo_resources.Get("/my_resource.txt")
+	resName := startDirectory + "/my_resource.txt"
+	// get resource from packageName
+	data, found := resources.Get(resName)
 	if !found {
 		t.Error("Resource not found")
 		t.FailNow()
 	}
-	fmt.Println(string(data))
+	fmt.Println(resName, ":\n", string(data))
 }
 
 func TestSaveToPath(t *testing.T) {
