@@ -2,7 +2,7 @@ package lygo_csv
 
 import (
 	"encoding/csv"
-	"github.com/botikasm/lygo/base/lygo_strings"
+	"fmt"
 	"strings"
 )
 
@@ -88,7 +88,7 @@ func buildHeaders(records *[][]string, options *CsvOptions) []string {
 		*records = (*records)[1:][:]
 	} else {
 		for i := 0; i < len(*records); i++ {
-			headers = append(headers, lygo_strings.Format("field_%s", i))
+			headers = append(headers, fmt.Sprintf("field_%v", i))
 		}
 	}
 

@@ -4,10 +4,11 @@ import (
 	"errors"
 	"github.com/botikasm/lygo/base/lygo_crypto"
 	"github.com/botikasm/lygo/base/lygo_strings"
-	"github.com/botikasm/lygo/ext/lygo_http/lygo_http_client"
 	"github.com/botikasm/lygo/ext/lygo_license"
 	"github.com/botikasm/lygo/ext/lygo_license/lygo_license_config"
 	"github.com/botikasm/lygo/ext/lygo_license/lygo_license_struct"
+	"io/ioutil"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -79,16 +80,37 @@ func (instance *LicenseClient) RequestLicense(path string) (license *lygo_licens
 func (instance *LicenseClient) download(path string) ([]byte, error) {
 	if len(path) > 0 {
 		url := instance.GetUrl() + path
-		http := lygo_http_client.NewHttpClient()
-		code, data, err := http.GetTimeout(url, 15*time.Second)
-		if code != 200 {
-			return []byte{}, errors.New(lygo_strings.Format("http_error: %s", code))
+
+		tr := &http.Transport{
+			MaxIdleConns:       10,
+			IdleConnTimeout:    15 * time.Second,
+			DisableCompression: true,
 		}
+		client := &http.Client{Transport: tr}
+		resp, err := client.Get(url)
 		if nil == err {
-			return data, nil
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			if nil == err {
+				return body, nil
+			} else {
+				return []byte{}, err
+			}
 		} else {
 			return []byte{}, err
 		}
+
+		/*
+			http := lygo_http_client.NewHttpClient()
+			code, data, err := http.GetTimeout(url, 15*time.Second)
+			if code != 200 {
+				return []byte{}, errors.New(lygo_strings.Format("http_error: %s", code))
+			}
+			if nil == err {
+				return data, nil
+			} else {
+				return []byte{}, err
+			}*/
 	}
 	return []byte{}, errors.New("missing_path: path parameter is empty string")
 }
